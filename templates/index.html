@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SparkHub</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='images/logo.svg') }}" type="image/svg+xml">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="Logo" class="logo-img">
+            <ul class="nav-menu">
+                <li><a href="#">Accueil</a></li>
+                <li><a href="#" class="btn-primary">Connexion</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <h1 class="hero-title">Le pont numérique <span class="highlight">entre les marchés</span></h1>
+        <p>SparkHub combine les prix en temps réel, la mise en relation B2B et les annonces locales.</p>
+        <a href="#" class="btn-hero-primary">Explorer les prix</a>
+        <div class="hero-stats">
+            <span>🌍 3 Pays connectés</span>
+            <span>⚡ 24/7 Données directes</span>
+            <span>💰 100% P2P</span>
+        </div>
+    </header>
+
+    <section class="pillars">
+        <h2>Notre écosystème <span class="highlight">complet</span></h2>
+        <div class="pillar-grid">
+            <div class="pillar-card">📊 Data Price</div>
+            <div class="pillar-card">🤝 Marketplace Pro</div>
+            <div class="pillar-card">📢 Local Mart</div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; {{ year }} SparkHub — Développé par <strong>Seïkī</strong>.</p>
+    </footer>
+</body>
+  </html>
