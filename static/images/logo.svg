@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 80" width="400" height="80">
+  <defs>
+    <linearGradient id="fire" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF512F"/>
+      <stop offset="100%" stop-color="#F09819"/>
+    </linearGradient>
+    <linearGradient id="hub" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FF512F"/>
+      <stop offset="100%" stop-color="#DD2475"/>
+    </linearGradient>
+  </defs>
+  <polygon points="15,15 28,35 18,38 26,62 44,40 32,38 48,18" fill="url(#fire)"/>
+  <text x="65" y="52" font-family="Arial, sans-serif" font-weight="900" font-size="40" fill="#0F172A">SPARK</text>
+  <text x="195" y="52" font-family="Arial, sans-serif" font-weight="900" font-size="40" fill="url(#hub)">HUB</text>
+  <text x="68" y="72" font-family="Arial, sans-serif" font-weight="600" font-size="10" fill="#94A3B8" letter-spacing="2">IGNITE YOUR TRADE</text>
+</svg>
