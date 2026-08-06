@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SparkHub - Résultats</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/logo.svg') }}" type="image/svg+xml">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter',sans-serif; }
+        body { background:#f8fafc; min-height:100vh; }
+        .navbar { padding:16px 30px; background:rgba(255,255,255,0.9); backdrop-filter:blur(10px); border-bottom:1px solid rgba(0,0,0,0.04); display:flex; justify-content:space-between; align-items:center; }
+        .navbar img { height:38px; }
+        .navbar a { color:#0f172a; text-decoration:none; font-weight:600; }
+        .container { max-width:900px; margin:30px auto; padding:0 20px; }
+        .search-bar { background:white; border-radius:60px; padding:6px; box-shadow:0 8px 24px rgba(0,0,0,0.04); display:flex; flex-wrap:wrap; align-items:center; margin-bottom:30px; border:1px solid #e2e8f0; }
+        .search-bar input { flex:2; border:none; padding:14px 20px; font-size:1rem; border-radius:60px 0 0 60px; outline:none; background:transparent; min-width:100px; }
+        .search-bar select { flex:1; border:none; padding:14px 12px; font-size:0.9rem; background:transparent; outline:none; border-left:1px solid #e2e8f0; min-width:70px; cursor:pointer; }
+        .search-bar button { border:none; background:#f97316; color:white; padding:12px 28px; border-radius:60px; font-weight:700; cursor:pointer; transition:background 0.2s; }
+        .search-bar button:hover { background:#ea580c; }
+        .result-card { background:white; padding:18px 22px; border-radius:16px; border:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:12px; transition:0.2s; }
+        .result-card:hover { border-color:#f97316; box-shadow:0 4px 20px rgba(0,0,0,0.04); }
+        .product-title { font-weight:700; color:#0f172a; font-size:1rem; }
+        .product-price { font-size:1.4rem; font-weight:700; color:#0f172a; }
+        .product-source { background:#f1f5f9; padding:2px 12px; border-radius:20px; font-size:0.75rem; color:#475569; }
+        .btn-buy { background:#f97316; color:white; padding:10px 24px; border-radius:50px; text-decoration:none; font-weight:700; display:inline-block; transition:0.2s; }
+        .btn-buy:hover { background:#ea580c; }
+        .btn-buy.disabled { background:#94a3b8; cursor:not-allowed; }
+        .back-link { display:inline-block; margin-top:25px; color:#0f172a; text-decoration:none; font-weight:600; }
+        footer { text-align:center; padding:25px; background:#0f172a; color:#cbd5e1; margin-top:40px; }
+        footer strong { color:#f97316; }
+        footer small { color:#64748b; font-size:0.7rem; display:block; margin-top:6px; }
+        @media (max-width:600px) {
+            .search-bar { flex-wrap:wrap; border-radius:30px; padding:12px; }
+            .search-bar input { flex:1 1 100%; border-radius:30px; border:1px solid #e2e8f0; margin-bottom:8px; }
+            .search-bar select { flex:1 1 40%; border-radius:30px; border:1px solid #e2e8f0; margin-bottom:8px; border-left:none; }
+            .search-bar button { flex:1 1 100%; border-radius:30px; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="SparkHub">
+        <a href="/">Accueil</a>
+    </nav>
+    <div class="container">
+        <form action="/scout" method="get" class="search-bar">
+            <input type="text" name="query" value="{{ query }}" placeholder="Nouvelle recherche..." required>
+            <select name="country">
+                <option value="worldwide" {% if country == 'worldwide' %}selected{% endif %}>🌍 Monde</option>
+                <option value="US" {% if country == 'US' %}selected{% endif %}>🇺🇸 US</option>
+                <option value="FR" {% if country == 'FR' %}selected{% endif %}>🇫🇷 FR</option>
+                <option value="GB" {% if country == 'GB' %}selected{% endif %}>🇬🇧 UK</option>
+                <option value="DE" {% if country == 'DE' %}selected{% endif %}>🇩🇪 DE</option>
+                <option value="JP" {% if country == 'JP' %}selected{% endif %}>🇯🇵 JP</option>
+                <option value="MG" {% if country == 'MG' %}selected{% endif %}>🇲🇬 MG</option>
+            </select>
+            <button type="submit">🔍</button>
+        </form>
+
+        <h2 style="font-size:1.3rem; margin-bottom:6px; color:#0f172a;">
+            Résultats pour <span style="color:#f97316;">"{{ query }}"</span>
+            <span style="font-size:0.7rem; background:#e2e8f0; padding:2px 12px; border-radius:50px; font-weight:normal; margin-left:8px;">{{ country }}</span>
+        </h2>
+        <p style="color:#64748b; margin-bottom:20px; font-size:0.85rem;">Mis à jour : {{ updated_at }}</p>
+
+        {% if results %}
+            {% for item in results %}
+            <div class="result-card">
+                <div style="flex:2;">
+                    <div class="product-title">{{ item.title }}</div>
+                    <div class="product-price">💰 {{ item.price }}</div>
+                    <span class="product-source">📦 {{ item.source }}</span>
+                </div>
+                <div style="flex:1; text-align:right; min-width:100px;">
+                    {% if item.affiliate_link and item.affiliate_link != '#' %}
+                        <a href="{{ item.affiliate_link }}" target="_blank" class="btn-buy">🛒 Acheter</a>
+                    {% else %}
+                        <span style="color:#94a3b8; font-size:0.75rem;">Lien indisponible</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div style="text-align:center; padding:40px 20px; background:white; border-radius:16px;">
+                <p style="color:#64748b;">Aucun résultat. Essayez un autre terme ou pays.</p>
+            </div>
+        {% endif %}
+
+        <a href="/" class="back-link">← Retour à l'accueil</a>
+    </div>
+    <footer>
+        <p>&copy; {{ year }} SparkHub — Développé par <strong>Seïkī</strong></p>
+        <small>🔗 Liens d'affiliation · Paiements sécurisés via Binance P2P</small>
+    </footer>
+</body>
+  </html>
