@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import datetime
+import json
 
 # ⚠️ Adresse de ton site (l'endroit où on va envoyer les prix)
 WEBHOOK_URL = "https://sparkhub001.pythonanywhere.com/webhook-update"
@@ -9,7 +10,7 @@ SECRET_TOKEN = "SPARKHUB_SUPER_SECRET_2026"
 def scrape_and_send():
     print(f"🔁 Début du scraping - {datetime.datetime.now()}")
     
-    # Liste des produits à scraper (tu peux en ajouter ici)
+    # Liste des produits à scraper
     products = ["riz", "huile", "sucre", "airpods", "iphone", "ordinateur"]
     all_results = []
     
@@ -20,7 +21,6 @@ def scrape_and_send():
             response = requests.get(url, headers=headers, timeout=10)
             soup = BeautifulSoup(response.content, 'html.parser')
             
-            # Chercher les articles
             articles = soup.find_all('article', class_='prd')[:2]
             for article in articles:
                 title_tag = article.find('h3', class_='name')
@@ -42,11 +42,21 @@ def scrape_and_send():
     if all_results:
         try:
             payload = {"updates": all_results}
-            headers = {'X-Update-Token': SECRET_TOKEN}
+            headers = {
+                'X-Update-Token': SECRET_TOKEN,
+                'Content-Type': 'application/json'
+            }
+            print(f"📡 Envoi de {len(all_results)} produits vers {WEBHOOK_URL}")
             response = requests.post(WEBHOOK_URL, json=payload, headers=headers, timeout=30)
-            print(f"📡 Réponse du serveur : {response.json()}")
+            print(f"📡 Code HTTP : {response.status_code}")
+            print(f"📡 Réponse : {response.text}")
+            
+            if response.status_code == 200:
+                print("✅ Données envoyées avec succès !")
+            else:
+                print("💥 Échec de l'envoi, vérifie le token ou l'URL.")
         except Exception as e:
-            print(f"💥 Échec de l'envoi : {e}")
+            print(f"💥 Erreur de connexion : {e}")
     else:
         print("⚠️ Aucun prix récupéré, rien à envoyer.")
 
