@@ -1,16 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 80" width="400" height="80">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 90" width="400" height="90">
   <defs>
-    <linearGradient id="fire" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FF512F"/>
-      <stop offset="100%" stop-color="#F09819"/>
+    <linearGradient id="mainGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f97316"/>
+      <stop offset="100%" style="stop-color:#ea580c"/>
     </linearGradient>
-    <linearGradient id="hub" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#FF512F"/>
-      <stop offset="100%" stop-color="#DD2475"/>
+    <linearGradient id="hubGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f97316"/>
+      <stop offset="100%" style="stop-color:#dc2626"/>
     </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
   </defs>
-  <polygon points="15,15 28,35 18,38 26,62 44,40 32,38 48,18" fill="url(#fire)"/>
-  <text x="65" y="52" font-family="Arial, sans-serif" font-weight="900" font-size="40" fill="#0F172A">SPARK</text>
-  <text x="195" y="52" font-family="Arial, sans-serif" font-weight="900" font-size="40" fill="url(#hub)">HUB</text>
-  <text x="68" y="72" font-family="Arial, sans-serif" font-weight="600" font-size="10" fill="#94A3B8" letter-spacing="2">IGNITE YOUR TRADE</text>
+  
+  <!-- Éclair stylisé -->
+  <g filter="url(#glow)">
+    <polygon points="25,10 45,35 30,38 42,70 62,45 48,42 68,18" fill="url(#mainGrad)"/>
+  </g>
+  
+  <!-- SPARK -->
+  <text x="85" y="58" font-family="'Inter','Segoe UI',sans-serif" font-weight="800" font-size="42" fill="#0f172a" letter-spacing="1.5">
+    SPARK
+  </text>
+  
+  <!-- HUB -->
+  <text x="230" y="58" font-family="'Inter','Segoe UI',sans-serif" font-weight="800" font-size="42" fill="url(#hubGrad)" letter-spacing="1.5">
+    HUB
+  </text>
+  
+  <!-- Tagline -->
+  <text x="88" y="80" font-family="'Inter','Segoe UI',sans-serif" font-weight="600" font-size="11" fill="#94a3b8" letter-spacing="3.5">
+    IGNITE YOUR TRADE
+  </text>
 </svg>
