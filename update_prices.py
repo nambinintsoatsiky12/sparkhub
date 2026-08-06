@@ -1,7 +1,7 @@
 import requests
 import datetime
 
-# 🔑 TA CLÉ API PRICEAPI (Metoda)
+# 🔑 TA CLÉ API PRICEAPI (Metoda) - IDENTIQUE À flask_app.py
 API_KEY = "SFXOWLHAFMQOTHELWUXNHJUODIONWMPBVDJZAESHRBBUIPWOIKJFYZWALUYZQHTF"
 API_URL = "https://priceapi.metoda.com/v1/prices"
 
@@ -17,12 +17,12 @@ def scrape_and_send():
     
     for product in products:
         try:
-            # ✅ CORRECTION : La clé en paramètre, comme dans flask_app.py
+            # ✅ CORRECTION ICI : la clé dans les paramètres URL (comme dans flask_app.py)
             params = {
                 "q": product,
                 "country": "worldwide",
                 "limit": 3,
-                "apikey": API_KEY  # 👈 ICI et pas dans le header
+                "apikey": API_KEY  # <-- C'EST LA BONNE LIGNE
             }
             headers = {"Content-Type": "application/json"}
             
@@ -50,6 +50,8 @@ def scrape_and_send():
         headers = {'X-Update-Token': SECRET_TOKEN, 'Content-Type': 'application/json'}
         response = requests.post(WEBHOOK_URL, json=payload, headers=headers, timeout=30)
         print(f"📡 Envoi terminé : {response.status_code}")
+    else:
+        print("⚠️ Aucun prix récupéré, rien à envoyer.")
 
 if __name__ == "__main__":
     scrape_and_send()
