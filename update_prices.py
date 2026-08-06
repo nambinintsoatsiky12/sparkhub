@@ -23,7 +23,7 @@ def scrape_amazon(product, country="US"):
 
         scraperapi_url = f"https://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={url}&country_code={country}&render=true"
 
-        response = requests.get(scraperapi_url, timeout=30)
+        response = requests.get(scraperapi_url, timeout=30, proxies={"http": None, "https": None})
         soup = BeautifulSoup(response.text, 'html.parser')
 
         products = soup.find_all('div', {'data-component-type': 's-search-result'})
@@ -57,7 +57,7 @@ def scrape_jumia(product):
         url = f"https://www.jumia.mg/catalog/?q={product.replace(' ', '+')}"
         scraperapi_url = f"https://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={url}"
 
-        response = requests.get(scraperapi_url, timeout=30)
+        response = requests.get(scraperapi_url, timeout=30, proxies={"http": None, "https": None})
         soup = BeautifulSoup(response.text, 'html.parser')
 
         products = soup.find_all('article', class_='prd')
