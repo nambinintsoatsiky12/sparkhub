@@ -1,7 +1,7 @@
 import requests
 import datetime
 
-# 🔑 TA CLÉ API PRICEAPI
+# 🔑 TA CLÉ API PRICEAPI (Metoda)
 API_KEY = "SFXOWLHAFMQOTHELWUXNHJUODIONWMPBVDJZAESHRBBUIPWOIKJFYZWALUYZQHTF"
 API_URL = "https://priceapi.metoda.com/v1/prices"
 
@@ -17,8 +17,14 @@ def scrape_and_send():
     
     for product in products:
         try:
-            headers = {"x-api-key": API_KEY, "Content-Type": "application/json"}
-            params = {"q": product, "country": "worldwide", "limit": 3}
+            # ✅ CORRECTION : La clé en paramètre, comme dans flask_app.py
+            params = {
+                "q": product,
+                "country": "worldwide",
+                "limit": 3,
+                "apikey": API_KEY  # 👈 ICI et pas dans le header
+            }
+            headers = {"Content-Type": "application/json"}
             
             response = requests.get(API_URL, headers=headers, params=params, timeout=10)
             data = response.json()
