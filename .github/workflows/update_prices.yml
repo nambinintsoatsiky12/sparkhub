@@ -1,20 +1,26 @@
-name: Mettre à jour les prix
+name: Mettre à jour les prix automatiquement
 
 on:
   schedule:
-    - cron: '0 8 * * *'  # Tous les jours à 8h
-  workflow_dispatch:    # Pour lancer manuellement depuis GitHub
+    - cron: '0 8 * * *'   # Tous les jours à 8h (heure UTC)
+  workflow_dispatch:       # Pour lancer manuellement depuis l'onglet Actions
 
 jobs:
   update:
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+      
+      - name: Installer Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-      - run: pip install requests beautifulsoup4
-      - run: python update_prices.py
-        env:
-          # Tu pourras y mettre des secrets plus tard (clés API, etc.)
-          PYTHONUNBUFFERED: 1
+      
+      - name: Installer les bibliothèques
+        run: |
+          pip install requests beautifulsoup4
+      
+      - name: Lancer le scraper
+        run: python update_prices.py
