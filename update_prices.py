@@ -1,8 +1,11 @@
 import requests
 import datetime
 
-BUYWHERE_API_KEY = "bw_1c9d31d53fe04975b2448ed6cd87450d"  # <-- Ta clé ici
+# 🔑 TA CLÉ API PRICEAPI
+API_KEY = "SFXOWLHAFMQOTHELWUXNHJUODIONWMPBVDJZAESHRBBUIPWOIKJFYZWALUYZQHTF"
+API_URL = "https://priceapi.metoda.com/v1/prices"
 
+# Webhook vers PythonAnywhere
 WEBHOOK_URL = "https://sparkhub001.pythonanywhere.com/webhook-update"
 SECRET_TOKEN = "SPARKHUB_SUPER_SECRET_2026"
 
@@ -14,20 +17,17 @@ def scrape_and_send():
     
     for product in products:
         try:
-            url = "https://api.buywhere.ai/v1/search"
-            headers = {
-                "Authorization": f"Bearer {BUYWHERE_API_KEY}",
-                "Content-Type": "application/json"
-            }
+            headers = {"x-api-key": API_KEY, "Content-Type": "application/json"}
             params = {"q": product, "country": "worldwide", "limit": 3}
-            response = requests.get(url, headers=headers, params=params, timeout=10)
+            
+            response = requests.get(API_URL, headers=headers, params=params, timeout=10)
             data = response.json()
             
             for item in data.get('results', []):
                 title = item.get('title', 'Produit')
                 price = item.get('price', 'N/A')
                 currency = item.get('currency', 'USD')
-                source = item.get('source', 'BuyWhere')
+                source = item.get('source', 'PriceAPI')
                 
                 all_results.append({
                     "keyword": product,
