@@ -186,6 +186,12 @@ def webhook_update():
         count += 1
 
     return jsonify({"status": "success", "message": f"{count} prix mis à jour"})
+@app.route('/guides')
+def guides():
+    return render_template('guides.html', year=datetime.datetime.now().year)
 
+@app.route('/marketplace')
+def marketplace():
+    return render_template('marketplace.html', year=datetime.datetime.now().year)
 if __name__ == '__main__':
     app.run(debug=True)
