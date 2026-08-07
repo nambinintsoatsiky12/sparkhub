@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paiements — SparkHub</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/logo.svg') }}" type="image/svg+xml">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #fafafa; margin: 0; padding: 0; }
+        .container { max-width: 800px; margin: 40px auto; padding: 0 20px; }
+        .card { background: white; padding: 30px; border-radius: 24px; border: 1px solid #e5e7eb; margin-bottom: 24px; }
+        .card h2 { margin-top: 0; }
+        .card .info { font-size: 1.2rem; font-weight: 600; color: #0f172a; word-break: break-all; }
+        .card .label { color: #6b7280; font-weight: 400; font-size: 0.9rem; }
+        .navbar { padding: 16px 30px; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0,0,0,0.04); display: flex; justify-content: space-between; align-items: center; }
+        .navbar img { height: 38px; }
+        .navbar a { color: #0f172a; text-decoration: none; font-weight: 600; }
+        footer { text-align: center; padding: 25px; background: #0f172a; color: #cbd5e1; margin-top: 40px; }
+        footer strong { color: #f97316; }
+        .copy-btn { background: #0f172a; color: white; padding: 8px 20px; border: none; border-radius: 40px; cursor: pointer; margin-top: 8px; }
+        .copy-btn:hover { background: #f97316; }
+        @media (max-width: 600px) { .navbar { flex-wrap: wrap; gap: 10px; } }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="SparkHub">
+        <a href="/">Accueil</a>
+    </nav>
+    <div class="container">
+        <h1 style="font-size: 2.2rem;">💰 Paiements</h1>
+        <p style="color: #6b7280;">Soutenez SparkHub ou payez en toute sécurité via ces méthodes.</p>
+
+        <div class="card">
+            <h2>💎 Crypto (USDT / BNB)</h2>
+            <p class="label">Adresse Binance (BEP20) :</p>
+            <div class="info">0x1234567890abcdef1234567890abcdef12345678</div>
+            <button class="copy-btn" onclick="navigator.clipboard.writeText('0x1234567890abcdef1234567890abcdef12345678')">📋 Copier</button>
+        </div>
+
+        <div class="card">
+            <h2>📱 Mobile Money</h2>
+            <p class="label">Airtel Money :</p>
+            <div class="info">+261 34 12 345 67</div>
+            <p class="label" style="margin-top:12px;">MVola :</p>
+            <div class="info">+261 34 12 345 67</div>
+        </div>
+
+        <div class="card">
+            <h2>💳 Autres moyens</h2>
+            <p>Contactez-nous pour d'autres options de paiement : <a href="mailto:contact@sparkhub.com" style="color:#f97316;">contact@sparkhub.com</a></p>
+        </div>
+
+        <a href="/" style="display:inline-block; margin-top: 20px; color: #f97316; text-decoration: none;">← Retour à l'accueil</a>
+    </div>
+    <footer>
+        <p>&copy; {{ year }} SparkHub — Développé par <strong>Seïkī</strong></p>
+    </footer>
+</body>
+</html>
