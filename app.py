@@ -6,17 +6,27 @@ import re
 
 app = Flask(__name__)
 
+# =============================================
 # 🔑 TA CLÉ SCRAPERAPI
+# =============================================
 SCRAPERAPI_KEY = "f554d91dca9a43b2b06744478422a674"
 
+# =============================================
 # 🧠 BASE DE DONNÉES (CACHE)
+# =============================================
 from database import init_db, get_prices, save_price
 init_db()
 
+# =============================================
+# 🌐 PAGE D'ACCUEIL
+# =============================================
 @app.route('/')
 def home():
     return render_template('index.html', year=datetime.datetime.now().year)
 
+# =============================================
+# 🔍 PAGE DE RECHERCHE (RÉSULTATS)
+# =============================================
 @app.route('/scout')
 def scout():
     query = request.args.get('query', '').strip().lower()
@@ -33,6 +43,7 @@ def scout():
             updated_at = db_results[0].get('updated_at', 'Cache')
         else:
             try:
+                # Construction de l'URL selon le pays
                 if country == "worldwide" or country == "US":
                     search_url = f"https://www.amazon.com/s?k={query.replace(' ', '+')}"
                 elif country == "FR":
@@ -48,6 +59,7 @@ def scout():
                 else:
                     search_url = f"https://www.amazon.com/s?k={query.replace(' ', '+')}"
 
+                # Appel ScraperAPI avec désactivation du proxy
                 scraperapi_url = f"https://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={search_url}&country_code={country}&render=true"
                 response = requests.get(scraperapi_url, timeout=30, proxies={"http": None, "https": None})
                 html_content = response.text
@@ -97,6 +109,7 @@ def scout():
                         })
                         count += 1
 
+                # Fallback Jumia
                 if not results:
                     jumia_url = f"https://www.jumia.mg/catalog/?q={query.replace(' ', '+')}"
                     scraperapi_url_jumia = f"https://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={jumia_url}"
