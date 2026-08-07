@@ -21,7 +21,7 @@ def scrape_amazon(product, country="US"):
         else:
             url = f"https://www.amazon.com/s?k={product.replace(' ', '+')}"
 
-        scraperapi_url = f"https://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={url}&country_code={country}&render=true"
+        scraperapi_url = f"https://api.allorigins.win/raw?url={search_url}"
 
         response = requests.get(scraperapi_url, timeout=30, proxies={"http": None, "https": None})
         soup = BeautifulSoup(response.text, 'html.parser')
