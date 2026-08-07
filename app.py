@@ -1,8 +1,9 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect
 import datetime
 import requests
 from bs4 import BeautifulSoup
 import re
+import sqlite3
 
 app = Flask(__name__)
 
@@ -14,7 +15,7 @@ SCRAPERAPI_KEY = "f554d91dca9a43b2b06744478422a674"
 # =============================================
 # 🧠 BASE DE DONNÉES (CACHE)
 # =============================================
-from database import init_db, get_prices, save_price
+from database import init_db, get_prices, save_price, save_annonce, get_all_annonces
 init_db()
 
 # =============================================
@@ -147,16 +148,37 @@ def scout():
                           year=datetime.datetime.now().year)
 
 # =============================================
-# 🆕 NOUVELLES ROUTES (Guides, Marketplace, Paiements)
+# 📚 GUIDES
 # =============================================
 @app.route('/guides')
 def guides():
     return render_template('guides.html', year=datetime.datetime.now().year)
 
+# =============================================
+# 🛒 MARKETPLACE
+# =============================================
 @app.route('/marketplace')
 def marketplace():
-    return render_template('marketplace.html', year=datetime.datetime.now().year)
+    annonces = get_all_annonces()
+    return render_template('marketplace.html', annonces=annonces, year=datetime.datetime.now().year)
 
+# =============================================
+# 📝 DÉPOSER UNE ANNONCE
+# =============================================
+@app.route('/deposer-annonce', methods=['GET', 'POST'])
+def deposer_annonce():
+    if request.method == 'POST':
+        titre = request.form.get('titre')
+        description = request.form.get('description')
+        prix = request.form.get('prix')
+        contact = request.form.get('contact')
+        save_annonce(titre, description, prix, contact)
+        return redirect('/marketplace')
+    return render_template('deposer.html', year=datetime.datetime.now().year)
+
+# =============================================
+# 💰 PAIEMENTS
+# =============================================
 @app.route('/paiements')
 def paiements():
     return render_template('paiements.html', year=datetime.datetime.now().year)
@@ -186,12 +208,9 @@ def webhook_update():
         count += 1
 
     return jsonify({"status": "success", "message": f"{count} prix mis à jour"})
-@app.route('/guides')
-def guides():
-    return render_template('guides.html', year=datetime.datetime.now().year)
 
-@app.route('/marketplace')
-def marketplace():
-    return render_template('marketplace.html', year=datetime.datetime.now().year)
+# =============================================
+# 🚀 LANCEMENT
+# =============================================
 if __name__ == '__main__':
     app.run(debug=True)
