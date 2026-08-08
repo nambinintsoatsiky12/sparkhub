@@ -181,6 +181,13 @@ def paiements():
     return render_template('paiements.html', year=datetime.datetime.now().year)
 
 # =============================================
+# 👤 MON COMPTE (protégé)
+# =============================================
+@app.route('/mon-compte')
+@login_required
+def mon_compte():
+    return render_template('mon_compte.html', year=datetime.datetime.now().year, user=current_user)
+# =============================================
 # 📡 WEBHOOK POUR GITHUB ACTIONS
 # =============================================
 SECRET_TOKEN = "SPARKHUB_SUPER_SECRET_2026"
