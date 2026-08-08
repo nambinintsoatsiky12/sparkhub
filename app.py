@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
+from flask import Flask, render_template, request, jsonify, redirect, flash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 import datetime
 import requests
@@ -10,9 +10,6 @@ import bcrypt
 app = Flask(__name__)
 app.secret_key = "SPARKHUB_SECRET_KEY_CHANGE_ME"
 
-# =============================================
-# 🔑 FLASK-LOGIN
-# =============================================
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'connexion'
@@ -31,32 +28,23 @@ def load_user(user_id):
         return User(user['id'], user['email'])
     return None
 
-# =============================================
-# 🔑 CLÉ SCRAPERAPI
-# =============================================
-SCRAPERAPI_KEY = "f554d91dca9a43b2b06744478422a674"
-
-# =============================================
-# 🧠 BASE DE DONNÉES
-# =============================================
+# ===== IMPORTS =====
 from database import (
     init_db, get_prices, save_price,
-    save_annonce, get_all_annonces,
-    get_user_by_email, get_user_by_id, create_user,
-    save_commentaire, get_commentaires
+    save_annonce, get_all_annonces, get_user_annonces, update_annonce, delete_annonce,
+    save_commentaire, get_commentaires,
+    get_user_by_email, create_user
 )
 init_db()
 
-# =============================================
-# 🏠 ACCUEIL
-# =============================================
+# ===== CLÉ SCRAPERAPI =====
+SCRAPERAPI_KEY = "f554d91dca9a43b2b06744478422a674"
+
+# ===== ROUTES =====
 @app.route('/')
 def home():
     return render_template('index.html', year=datetime.datetime.now().year)
 
-# =============================================
-# 🔍 RECHERCHE (COMPARATEUR)
-# =============================================
 @app.route('/scout')
 def scout():
     query = request.args.get('query', '').strip().lower()
@@ -94,7 +82,6 @@ def scout():
 
                 soup = BeautifulSoup(html_content, 'html.parser')
                 products = soup.find_all('div', {'data-component-type': 's-search-result'})
-
                 if not products:
                     products = soup.find_all('article', class_='prd')
 
@@ -102,19 +89,15 @@ def scout():
                 for product in products:
                     if count >= 10:
                         break
-
                     title_tag = product.find('h2')
                     if not title_tag:
                         title_tag = product.find('h3', class_='name')
                     title = title_tag.text.strip() if title_tag else "Produit"
-
                     price_tag = product.find('span', class_='a-price-whole')
                     if not price_tag:
                         price_tag = product.find('div', class_='prc')
                     price = price_tag.text.strip() if price_tag else "N/A"
-
                     currency = "Ar" if country == "MG" else "USD" if country == "US" else "EUR" if country in ["FR", "DE"] else "USD"
-
                     link_tag = product.find('a', class_='a-link-normal')
                     if not link_tag:
                         link_tag = product.find('a', class_='core')
@@ -124,7 +107,6 @@ def scout():
                             affiliate_link = "https://www.amazon.com" + link_tag['href']
                         else:
                             affiliate_link = link_tag['href']
-
                     if price != "N/A" and title != "Produit":
                         price_clean = re.sub(r'[^\d\s,.]', '', price).strip()
                         price_display = f"{price_clean} {currency}" if price_clean else price
@@ -157,40 +139,25 @@ def scout():
                                 'source': "ScraperAPI (Jumia)",
                                 'affiliate_link': "#"
                             })
-
                 updated_at = f"Aujourd'hui ({country})"
-
             except Exception as e:
-                results = [
-                    {'title': f"Erreur: {str(e)[:80]}", 'price': 'Vérifie ta clé ScraperAPI', 'source': 'Info', 'affiliate_link': '#'},
-                ]
+                results = [{'title': f"Erreur: {str(e)[:80]}", 'price': 'Vérifie ta clé ScraperAPI', 'source': 'Info', 'affiliate_link': '#'}]
                 updated_at = "API indisponible"
 
-    return render_template('scout.html',
-                          query=query,
-                          results=results,
-                          country=country,
-                          updated_at=updated_at,
-                          year=datetime.datetime.now().year)
+    return render_template('scout.html', query=query, results=results, country=country, updated_at=updated_at, year=datetime.datetime.now().year)
 
-# =============================================
-# 📚 GUIDES
-# =============================================
+# ===== GUIDES =====
 @app.route('/guides')
 def guides():
     return render_template('guides.html', year=datetime.datetime.now().year)
 
-# =============================================
-# 🛒 MARKETPLACE
-# =============================================
+# ===== MARKETPLACE =====
 @app.route('/marketplace')
 def marketplace():
     annonces = get_all_annonces()
     return render_template('marketplace.html', annonces=annonces, year=datetime.datetime.now().year)
 
-# =============================================
-# 📝 DÉPOSER UNE ANNONCE
-# =============================================
+# ===== DÉPOSER =====
 @app.route('/deposer-annonce', methods=['GET', 'POST'])
 @login_required
 def deposer_annonce():
@@ -199,27 +166,21 @@ def deposer_annonce():
         description = request.form.get('description')
         prix = request.form.get('prix')
         contact = request.form.get('contact')
-        save_annonce(titre, description, prix, contact)
-        flash("Annonce publiée !", "success")
+        image_url = request.form.get('image_url')
+        categorie = request.form.get('categorie')
+        save_annonce(current_user.id, titre, description, prix, contact, image_url, categorie)
+        flash("Annonce publiée avec succès !", "success")
         return redirect('/marketplace')
     return render_template('deposer.html', year=datetime.datetime.now().year)
 
-# =============================================
-# 👤 MON COMPTE
-# =============================================
+# ===== MON COMPTE =====
 @app.route('/mon-compte')
 @login_required
 def mon_compte():
-    conn = sqlite3.connect('/home/Sparkhub001/sparkhub/prices.db')
-    c = conn.cursor()
-    c.execute("SELECT id, titre, description, prix, contact, date FROM annonces WHERE user_id = ? ORDER BY date DESC", (current_user.id,))
-    annonces = c.fetchall()
-    conn.close()
+    annonces = get_user_annonces(current_user.id)
     return render_template('mon_compte.html', annonces=annonces, year=datetime.datetime.now().year)
 
-# =============================================
-# ✏️ MODIFIER UNE ANNONCE
-# =============================================
+# ===== MODIFIER =====
 @app.route('/modifier-annonce/<int:id>', methods=['GET', 'POST'])
 @login_required
 def modifier_annonce(id):
@@ -230,23 +191,23 @@ def modifier_annonce(id):
         description = request.form.get('description')
         prix = request.form.get('prix')
         contact = request.form.get('contact')
-        c.execute("UPDATE annonces SET titre = ?, description = ?, prix = ?, contact = ? WHERE id = ? AND user_id = ?",
-                  (titre, description, prix, contact, id, current_user.id))
+        image_url = request.form.get('image_url')
+        categorie = request.form.get('categorie')
+        c.execute("UPDATE annonces SET titre = ?, description = ?, prix = ?, contact = ?, image_url = ?, categorie = ? WHERE id = ? AND user_id = ?",
+                  (titre, description, prix, contact, image_url, categorie, id, current_user.id))
         conn.commit()
         conn.close()
-        flash("Annonce modifiée !", "success")
+        flash("Annonce modifiée.", "success")
         return redirect('/mon-compte')
-    c.execute("SELECT titre, description, prix, contact FROM annonces WHERE id = ? AND user_id = ?", (id, current_user.id))
+    c.execute("SELECT titre, description, prix, contact, image_url, categorie FROM annonces WHERE id = ? AND user_id = ?", (id, current_user.id))
     annonce = c.fetchone()
     conn.close()
     if not annonce:
-        flash("Annonce introuvable ou vous n'avez pas les droits.", "danger")
+        flash("Annonce introuvable.", "danger")
         return redirect('/mon-compte')
     return render_template('modifier_annonce.html', annonce=annonce, id=id, year=datetime.datetime.now().year)
 
-# =============================================
-# 🗑️ SUPPRIMER UNE ANNONCE
-# =============================================
+# ===== SUPPRIMER =====
 @app.route('/supprimer-annonce/<int:id>')
 @login_required
 def supprimer_annonce(id):
@@ -258,9 +219,7 @@ def supprimer_annonce(id):
     flash("Annonce supprimée.", "info")
     return redirect('/mon-compte')
 
-# =============================================
-# 💬 COMMENTAIRES
-# =============================================
+# ===== COMMENTAIRE =====
 @app.route('/commenter/<int:annonce_id>', methods=['POST'])
 @login_required
 def commenter(annonce_id):
@@ -270,16 +229,12 @@ def commenter(annonce_id):
         flash("Commentaire ajouté.", "success")
     return redirect('/marketplace')
 
-# =============================================
-# 💰 PAIEMENTS
-# =============================================
+# ===== PAIEMENTS =====
 @app.route('/paiements')
 def paiements():
     return render_template('paiements.html', year=datetime.datetime.now().year)
 
-# =============================================
-# 👤 INSCRIPTION
-# =============================================
+# ===== INSCRIPTION =====
 @app.route('/inscription', methods=['GET', 'POST'])
 def inscription():
     if request.method == 'POST':
@@ -294,16 +249,14 @@ def inscription():
             return redirect('/inscription')
         hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         if create_user(email, hashed.decode('utf-8')):
-            flash("Compte créé ! Vous pouvez vous connecter.", "success")
+            flash("Compte créé ! Connectez-vous.", "success")
             return redirect('/connexion')
         else:
-            flash("Cet email est déjà utilisé.", "danger")
+            flash("Email déjà utilisé.", "danger")
             return redirect('/inscription')
     return render_template('inscription.html', year=datetime.datetime.now().year)
 
-# =============================================
-# 🔐 CONNEXION
-# =============================================
+# ===== CONNEXION =====
 @app.route('/connexion', methods=['GET', 'POST'])
 def connexion():
     if request.method == 'POST':
@@ -319,9 +272,7 @@ def connexion():
             flash("Email ou mot de passe incorrect.", "danger")
     return render_template('connexion.html', year=datetime.datetime.now().year)
 
-# =============================================
-# 🚪 DÉCONNEXION
-# =============================================
+# ===== DÉCONNEXION =====
 @app.route('/deconnexion')
 @login_required
 def deconnexion():
@@ -329,11 +280,8 @@ def deconnexion():
     flash("Déconnecté.", "info")
     return redirect('/')
 
-# =============================================
-# 📡 WEBHOOK
-# =============================================
+# ===== WEBHOOK =====
 SECRET_TOKEN = "SPARKHUB_SUPER_SECRET_2026"
-
 @app.route('/webhook-update', methods=['POST'])
 def webhook_update():
     token = request.headers.get('X-Update-Token')
@@ -343,16 +291,12 @@ def webhook_update():
     if not data or 'updates' not in data:
         return jsonify({"status": "error", "message": "Données invalides"}), 400
     for item in data['updates']:
-        save_price(
-            item.get('keyword', 'general'),
-            item.get('title', 'Produit'),
-            item.get('price', 'N/A'),
-            item.get('source', 'GitHub')
-        )
-    return jsonify({"status": "success"})
+        keyword = item.get('keyword', 'general')
+        title = item.get('title', 'Produit')
+        price = item.get('price', 'N/A')
+        source = item.get('source', 'GitHub')
+        save_price(keyword, title, price, source)
+    return jsonify({"status": "success", "message": "Mise à jour reçue"})
 
-# =============================================
-# 🚀 LANCEMENT
-# =============================================
 if __name__ == '__main__':
     app.run(debug=True)
