@@ -21,18 +21,18 @@ def init_db():
 
     # Table des annonces (Marketplace) avec user_id
     c.execute('''
-        CREATE TABLE IF NOT EXISTS annonces (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            titre TEXT,
-            description TEXT,
-            prix TEXT,
-            contact TEXT,
-            date TEXT,
-            FOREIGN KEY(user_id) REFERENCES users(id)
-        )
-    ''')
-
+    CREATE TABLE IF NOT EXISTS annonces (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        titre TEXT,
+        description TEXT,
+        prix TEXT,
+        contact TEXT,
+        image_url TEXT,
+        date TEXT,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )
+''')
     # Table des utilisateurs
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
