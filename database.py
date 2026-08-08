@@ -7,7 +7,7 @@ def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
 
-    # 1. Table des prix (cache pour les recherches)
+    # Table des prix (cache pour les recherches)
     c.execute('''
         CREATE TABLE IF NOT EXISTS prices (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -19,25 +19,40 @@ def init_db():
         )
     ''')
 
-    # 2. Table des annonces (Marketplace)
+    # Table des annonces (Marketplace) avec user_id
     c.execute('''
         CREATE TABLE IF NOT EXISTS annonces (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
             titre TEXT,
             description TEXT,
             prix TEXT,
             contact TEXT,
-            date TEXT
+            date TEXT,
+            FOREIGN KEY(user_id) REFERENCES users(id)
         )
     ''')
 
-    # 3. Table des utilisateurs (Inscription / Connexion)  <-- NOUVEAU
+    # Table des utilisateurs
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             email TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
             created_at TEXT
+        )
+    ''')
+
+    # Table des commentaires
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS commentaires (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            annonce_id INTEGER,
+            user_id INTEGER,
+            commentaire TEXT,
+            date TEXT,
+            FOREIGN KEY(annonce_id) REFERENCES annonces(id),
+            FOREIGN KEY(user_id) REFERENCES users(id)
         )
     ''')
 
@@ -67,22 +82,79 @@ def save_price(key, title, price, source):
 
 
 # ========== FONCTIONS POUR LES ANNONCES ==========
-def save_annonce(titre, description, prix, contact):
+def save_annonce(user_id, titre, description, prix, contact):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    c.execute("INSERT INTO annonces (titre, description, prix, contact, date) VALUES (?, ?, ?, ?, ?)",
-              (titre, description, prix, contact, now))
+    c.execute("INSERT INTO annonces (user_id, titre, description, prix, contact, date) VALUES (?, ?, ?, ?, ?, ?)",
+              (user_id, titre, description, prix, contact, now))
     conn.commit()
     conn.close()
 
 def get_all_annonces():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("SELECT titre, description, prix, contact, date FROM annonces ORDER BY date DESC")
+    c.execute("""
+        SELECT annonces.id, annonces.user_id, annonces.titre, annonces.description, 
+               annonces.prix, annonces.contact, annonces.date, users.email 
+        FROM annonces 
+        JOIN users ON annonces.user_id = users.id 
+        ORDER BY annonces.date DESC
+    """)
     rows = c.fetchall()
     conn.close()
     return rows
+
+def get_annonce_by_id(annonce_id):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT id, user_id, titre, description, prix, contact FROM annonces WHERE id = ?", (annonce_id,))
+    row = c.fetchone()
+    conn.close()
+    return row
+
+def update_annonce(annonce_id, user_id, titre, description, prix, contact):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("""
+        UPDATE annonces 
+        SET titre = ?, description = ?, prix = ?, contact = ? 
+        WHERE id = ? AND user_id = ?
+    """, (titre, description, prix, contact, annonce_id, user_id))
+    conn.commit()
+    conn.close()
+
+def delete_annonce(annonce_id, user_id):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("DELETE FROM annonces WHERE id = ? AND user_id = ?", (annonce_id, user_id))
+    conn.commit()
+    conn.close()
+
+
+# ========== FONCTIONS POUR LES COMMENTAIRES ==========
+def save_commentaire(annonce_id, user_id, commentaire):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    c.execute("INSERT INTO commentaires (annonce_id, user_id, commentaire, date) VALUES (?, ?, ?, ?)",
+              (annonce_id, user_id, commentaire, now))
+    conn.commit()
+    conn.close()
+
+def get_commentaires(annonce_id):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("""
+        SELECT commentaires.commentaire, commentaires.date, users.email 
+        FROM commentaires 
+        JOIN users ON commentaires.user_id = users.id 
+        WHERE annonce_id = ? 
+        ORDER BY commentaires.date DESC
+    """, (annonce_id,))
+    rows = c.fetchall()
+    conn.close()
+    return [{"commentaire": r[0], "date": r[1], "email": r[2]} for r in rows]
 
 
 # ========== FONCTIONS POUR LES UTILISATEURS ==========
