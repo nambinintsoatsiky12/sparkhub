@@ -6,7 +6,8 @@ DB_PATH = '/home/Sparkhub001/sparkhub/prices.db'
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    # Table des prix (cache pour les recherches)
+
+    # 1. Table des prix (cache pour les recherches)
     c.execute('''
         CREATE TABLE IF NOT EXISTS prices (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -17,7 +18,8 @@ def init_db():
             updated_at TEXT
         )
     ''')
-    # Table des annonces (Marketplace)
+
+    # 2. Table des annonces (Marketplace)
     c.execute('''
         CREATE TABLE IF NOT EXISTS annonces (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -28,9 +30,23 @@ def init_db():
             date TEXT
         )
     ''')
+
+    # 3. Table des utilisateurs (Inscription / Connexion)  <-- NOUVEAU
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            created_at TEXT
+        )
+    ''')
+
     conn.commit()
     conn.close()
+    print("✅ Base de données initialisée avec succès.")
 
+
+# ========== FONCTIONS POUR LES PRIX ==========
 def get_prices(key):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -49,7 +65,8 @@ def save_price(key, title, price, source):
     conn.commit()
     conn.close()
 
-# ✅ NOUVELLE FONCTION pour sauvegarder une annonce
+
+# ========== FONCTIONS POUR LES ANNONCES ==========
 def save_annonce(titre, description, prix, contact):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -59,7 +76,6 @@ def save_annonce(titre, description, prix, contact):
     conn.commit()
     conn.close()
 
-# ✅ NOUVELLE FONCTION pour récupérer toutes les annonces
 def get_all_annonces():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -67,3 +83,39 @@ def get_all_annonces():
     rows = c.fetchall()
     conn.close()
     return rows
+
+
+# ========== FONCTIONS POUR LES UTILISATEURS ==========
+def get_user_by_email(email):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT id, email, password FROM users WHERE email = ?", (email,))
+    row = c.fetchone()
+    conn.close()
+    if row:
+        return {"id": row[0], "email": row[1], "password": row[2]}
+    return None
+
+def get_user_by_id(user_id):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT id, email FROM users WHERE id = ?", (user_id,))
+    row = c.fetchone()
+    conn.close()
+    if row:
+        return {"id": row[0], "email": row[1]}
+    return None
+
+def create_user(email, hashed_password):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    try:
+        c.execute("INSERT INTO users (email, password, created_at) VALUES (?, ?, ?)",
+                  (email, hashed_password, now))
+        conn.commit()
+        conn.close()
+        return True
+    except sqlite3.IntegrityError:
+        conn.close()
+        return False  # Email déjà utilisé
