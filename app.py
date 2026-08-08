@@ -4,13 +4,14 @@ import datetime
 import requests
 from bs4 import BeautifulSoup
 import re
+import sqlite3
 import bcrypt
 
 app = Flask(__name__)
 app.secret_key = "SPARKHUB_SECRET_KEY_CHANGE_ME"
 
 # =============================================
-# 🔑 INITIALISATION DE FLASK-LOGIN
+# 🔑 FLASK-LOGIN
 # =============================================
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -31,27 +32,30 @@ def load_user(user_id):
     return None
 
 # =============================================
-# 🔑 TA CLÉ SCRAPERAPI
+# 🔑 CLÉ SCRAPERAPI
 # =============================================
 SCRAPERAPI_KEY = "f554d91dca9a43b2b06744478422a674"
 
 # =============================================
 # 🧠 BASE DE DONNÉES
 # =============================================
-from database import *
-
-# Initialiser la base
+from database import (
+    init_db, get_prices, save_price,
+    save_annonce, get_all_annonces,
+    get_user_by_email, get_user_by_id, create_user,
+    save_commentaire, get_commentaires
+)
 init_db()
 
 # =============================================
-# 🌐 PAGE D'ACCUEIL
+# 🏠 ACCUEIL
 # =============================================
 @app.route('/')
 def home():
     return render_template('index.html', year=datetime.datetime.now().year)
 
 # =============================================
-# 🔍 PAGE DE RECHERCHE (RÉSULTATS)
+# 🔍 RECHERCHE (COMPARATEUR)
 # =============================================
 @app.route('/scout')
 def scout():
@@ -177,7 +181,7 @@ def guides():
     return render_template('guides.html', year=datetime.datetime.now().year)
 
 # =============================================
-# 🛒 MARKETPLACE (public, mais les commentaires sont protégés)
+# 🛒 MARKETPLACE
 # =============================================
 @app.route('/marketplace')
 def marketplace():
@@ -195,10 +199,76 @@ def deposer_annonce():
         description = request.form.get('description')
         prix = request.form.get('prix')
         contact = request.form.get('contact')
-        save_annonce(current_user.id, titre, description, prix, contact)
-        flash("Annonce publiée avec succès !", "success")
+        save_annonce(titre, description, prix, contact)
+        flash("Annonce publiée !", "success")
         return redirect('/marketplace')
     return render_template('deposer.html', year=datetime.datetime.now().year)
+
+# =============================================
+# 👤 MON COMPTE
+# =============================================
+@app.route('/mon-compte')
+@login_required
+def mon_compte():
+    conn = sqlite3.connect('/home/Sparkhub001/sparkhub/prices.db')
+    c = conn.cursor()
+    c.execute("SELECT id, titre, description, prix, contact, date FROM annonces WHERE user_id = ? ORDER BY date DESC", (current_user.id,))
+    annonces = c.fetchall()
+    conn.close()
+    return render_template('mon_compte.html', annonces=annonces, year=datetime.datetime.now().year)
+
+# =============================================
+# ✏️ MODIFIER UNE ANNONCE
+# =============================================
+@app.route('/modifier-annonce/<int:id>', methods=['GET', 'POST'])
+@login_required
+def modifier_annonce(id):
+    conn = sqlite3.connect('/home/Sparkhub001/sparkhub/prices.db')
+    c = conn.cursor()
+    if request.method == 'POST':
+        titre = request.form.get('titre')
+        description = request.form.get('description')
+        prix = request.form.get('prix')
+        contact = request.form.get('contact')
+        c.execute("UPDATE annonces SET titre = ?, description = ?, prix = ?, contact = ? WHERE id = ? AND user_id = ?",
+                  (titre, description, prix, contact, id, current_user.id))
+        conn.commit()
+        conn.close()
+        flash("Annonce modifiée !", "success")
+        return redirect('/mon-compte')
+    c.execute("SELECT titre, description, prix, contact FROM annonces WHERE id = ? AND user_id = ?", (id, current_user.id))
+    annonce = c.fetchone()
+    conn.close()
+    if not annonce:
+        flash("Annonce introuvable ou vous n'avez pas les droits.", "danger")
+        return redirect('/mon-compte')
+    return render_template('modifier_annonce.html', annonce=annonce, id=id, year=datetime.datetime.now().year)
+
+# =============================================
+# 🗑️ SUPPRIMER UNE ANNONCE
+# =============================================
+@app.route('/supprimer-annonce/<int:id>')
+@login_required
+def supprimer_annonce(id):
+    conn = sqlite3.connect('/home/Sparkhub001/sparkhub/prices.db')
+    c = conn.cursor()
+    c.execute("DELETE FROM annonces WHERE id = ? AND user_id = ?", (id, current_user.id))
+    conn.commit()
+    conn.close()
+    flash("Annonce supprimée.", "info")
+    return redirect('/mon-compte')
+
+# =============================================
+# 💬 COMMENTAIRES
+# =============================================
+@app.route('/commenter/<int:annonce_id>', methods=['POST'])
+@login_required
+def commenter(annonce_id):
+    commentaire = request.form.get('commentaire')
+    if commentaire:
+        save_commentaire(annonce_id, current_user.id, commentaire)
+        flash("Commentaire ajouté.", "success")
+    return redirect('/marketplace')
 
 # =============================================
 # 💰 PAIEMENTS
@@ -216,23 +286,19 @@ def inscription():
         email = request.form.get('email')
         password = request.form.get('password')
         confirm = request.form.get('confirm_password')
-
         if not email or not password:
             flash("Tous les champs sont obligatoires.", "danger")
             return redirect('/inscription')
-
         if password != confirm:
             flash("Les mots de passe ne correspondent pas.", "danger")
             return redirect('/inscription')
-
         hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         if create_user(email, hashed.decode('utf-8')):
-            flash("Compte créé avec succès !", "success")
+            flash("Compte créé ! Vous pouvez vous connecter.", "success")
             return redirect('/connexion')
         else:
             flash("Cet email est déjà utilisé.", "danger")
             return redirect('/inscription')
-
     return render_template('inscription.html', year=datetime.datetime.now().year)
 
 # =============================================
@@ -243,19 +309,14 @@ def connexion():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
-
         user_data = get_user_by_email(email)
-        if user_data:
-            if bcrypt.checkpw(password.encode('utf-8'), user_data['password'].encode('utf-8')):
-                user = User(user_data['id'], user_data['email'])
-                login_user(user)
-                flash("Connecté avec succès !", "success")
-                return redirect('/')
-            else:
-                flash("Mot de passe incorrect.", "danger")
+        if user_data and bcrypt.checkpw(password.encode('utf-8'), user_data['password'].encode('utf-8')):
+            user = User(user_data['id'], user_data['email'])
+            login_user(user)
+            flash("Connecté !", "success")
+            return redirect('/')
         else:
-            flash("Email inconnu.", "danger")
-
+            flash("Email ou mot de passe incorrect.", "danger")
     return render_template('connexion.html', year=datetime.datetime.now().year)
 
 # =============================================
@@ -269,68 +330,7 @@ def deconnexion():
     return redirect('/')
 
 # =============================================
-# 👤 MON COMPTE (liste des annonces de l'utilisateur)
-# =============================================
-@app.route('/mon-compte')
-@login_required
-def mon_compte():
-    conn = sqlite3.connect('/home/Sparkhub001/sparkhub/prices.db')
-    c = conn.cursor()
-    c.execute("SELECT id, titre, description, prix, contact, date FROM annonces WHERE user_id = ? ORDER BY date DESC", (current_user.id,))
-    annonces = c.fetchall()
-    conn.close()
-    return render_template('mon_compte.html', annonces=annonces, year=datetime.datetime.now().year)
-
-# =============================================
-# ✏️ MODIFIER UNE ANNONCE
-# =============================================
-@app.route('/modifier-annonce/<int:annonce_id>', methods=['GET', 'POST'])
-@login_required
-def modifier_annonce(annonce_id):
-    annonce = get_annonce_by_id(annonce_id)
-    if not annonce or annonce[1] != current_user.id:
-        flash("Vous n'avez pas le droit de modifier cette annonce.", "danger")
-        return redirect('/mon-compte')
-    
-    if request.method == 'POST':
-        titre = request.form.get('titre')
-        description = request.form.get('description')
-        prix = request.form.get('prix')
-        contact = request.form.get('contact')
-        update_annonce(annonce_id, current_user.id, titre, description, prix, contact)
-        flash("Annonce modifiée avec succès.", "success")
-        return redirect('/mon-compte')
-    
-    return render_template('modifier_annonce.html', annonce=annonce, year=datetime.datetime.now().year)
-
-# =============================================
-# 🗑️ SUPPRIMER UNE ANNONCE
-# =============================================
-@app.route('/supprimer-annonce/<int:annonce_id>')
-@login_required
-def supprimer_annonce(annonce_id):
-    annonce = get_annonce_by_id(annonce_id)
-    if not annonce or annonce[1] != current_user.id:
-        flash("Vous n'avez pas le droit de supprimer cette annonce.", "danger")
-    else:
-        delete_annonce(annonce_id, current_user.id)
-        flash("Annonce supprimée.", "info")
-    return redirect('/mon-compte')
-
-# =============================================
-# 💬 COMMENTAIRES
-# =============================================
-@app.route('/commenter/<int:annonce_id>', methods=['POST'])
-@login_required
-def commenter(annonce_id):
-    commentaire = request.form.get('commentaire')
-    if commentaire:
-        save_commentaire(annonce_id, current_user.id, commentaire)
-        flash("Commentaire ajouté.", "success")
-    return redirect('/marketplace')
-
-# =============================================
-# 📡 WEBHOOK POUR GITHUB ACTIONS
+# 📡 WEBHOOK
 # =============================================
 SECRET_TOKEN = "SPARKHUB_SUPER_SECRET_2026"
 
@@ -339,21 +339,17 @@ def webhook_update():
     token = request.headers.get('X-Update-Token')
     if token != SECRET_TOKEN:
         return jsonify({"status": "error", "message": "Non autorisé"}), 403
-
     data = request.get_json()
     if not data or 'updates' not in data:
         return jsonify({"status": "error", "message": "Données invalides"}), 400
-
-    count = 0
     for item in data['updates']:
-        keyword = item.get('keyword', 'general')
-        title = item.get('title', 'Produit')
-        price = item.get('price', 'N/A')
-        source = item.get('source', 'GitHub')
-        save_price(keyword, title, price, source)
-        count += 1
-
-    return jsonify({"status": "success", "message": f"{count} prix mis à jour"})
+        save_price(
+            item.get('keyword', 'general'),
+            item.get('title', 'Produit'),
+            item.get('price', 'N/A'),
+            item.get('source', 'GitHub')
+        )
+    return jsonify({"status": "success"})
 
 # =============================================
 # 🚀 LANCEMENT
