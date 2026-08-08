@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fil d'actualité — SparkHub</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/logo.svg') }}" type="image/svg+xml">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: 'Inter', sans-serif; background: #fafafa; }
+        .navbar { padding: 16px 30px; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0,0,0,0.04); display: flex; justify-content: space-between; align-items: center; }
+        .navbar img { height: 38px; }
+        .navbar a { color: #0f172a; text-decoration: none; font-weight: 600; margin-left: 16px; }
+        .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+        .post { background: white; border-radius: 20px; border: 1px solid #e5e7eb; padding: 24px; margin-bottom: 24px; }
+        .post-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .post-author { font-weight: 700; color: #0f172a; }
+        .post-date { color: #94a3b8; font-size: 0.85rem; }
+        .post-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 6px; }
+        .post-price { font-weight: 700; color: #f97316; margin-bottom: 6px; }
+        .post-contact { color: #475569; margin-bottom: 6px; }
+        .post-description { color: #475569; margin-bottom: 12px; }
+        .comment-section { border-top: 1px solid #f3f4f6; padding-top: 12px; margin-top: 12px; }
+        .comment { background: #f9fafb; padding: 10px 14px; border-radius: 12px; margin-bottom: 8px; }
+        .comment strong { font-size: 0.85rem; }
+        .comment p { margin: 4px 0; }
+        .comment small { color: #94a3b8; font-size: 0.75rem; }
+        .comment-form { display: flex; gap: 8px; margin-top: 8px; }
+        .comment-form input { flex: 1; padding: 10px 16px; border: 1px solid #e5e7eb; border-radius: 40px; font-size: 0.9rem; }
+        .comment-form button { background: #f97316; color: white; border: none; padding: 10px 24px; border-radius: 40px; font-weight: 600; cursor: pointer; }
+        .comment-form button:hover { background: #ea580c; }
+        .post-empty { text-align: center; color: #94a3b8; padding: 40px; }
+        footer { text-align: center; padding: 25px; background: #0f172a; color: #cbd5e1; margin-top: 40px; }
+        footer strong { color: #f97316; }
+        @media (max-width: 600px) { .navbar { flex-wrap: wrap; gap: 10px; } }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="SparkHub">
+        <div>
+            <a href="/">Accueil</a>
+            <a href="/fil">Fil</a>
+            <a href="/marketplace">Marketplace</a>
+            <a href="/mon-compte">Mon compte</a>
+        </div>
+    </nav>
+    <div class="container">
+        <h1 style="font-size: 1.8rem; margin-bottom: 20px;">📰 Fil d'actualité</h1>
+
+        {% if annonces %}
+            {% for post in annonces %}
+            <div class="post">
+                <div class="post-header">
+                    <span class="post-author">👤 {{ post.auteur }}</span>
+                    <span class="post-date">📅 {{ post.date }}</span>
+                </div>
+                <div class="post-title">{{ post.titre }}</div>
+                <div class="post-price">💰 {{ post.prix }}</div>
+                <div class="post-contact">📞 {{ post.contact }}</div>
+                <div class="post-description">{{ post.description }}</div>
+
+                <!-- Commentaires -->
+                <div class="comment-section">
+                    <h4 style="margin-bottom: 8px; font-size: 0.95rem;">💬 Commentaires</h4>
+                    {% if post.commentaires %}
+                        {% for commentaire in post.commentaires %}
+                        <div class="comment">
+                            <strong>{{ commentaire.email }}</strong>
+                            <p>{{ commentaire.commentaire }}</p>
+                            <small>{{ commentaire.date }}</small>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p style="color: #94a3b8; font-size: 0.9rem;">Aucun commentaire. Soyez le premier !</p>
+                    {% endif %}
+
+                    {% if current_user.is_authenticated %}
+                        <form action="/commenter/{{ post.id }}" method="POST" class="comment-form">
+                            <input type="text" name="commentaire" placeholder="Écrire un commentaire..." required>
+                            <button type="submit">Envoyer</button>
+                        </form>
+                    {% else %}
+                        <p style="color: #94a3b8; font-size: 0.9rem; margin-top: 8px;">Connectez-vous pour commenter.</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="post-empty">
+                <p>Aucune annonce pour le moment. <a href="/deposer-annonce" style="color:#f97316;">Déposez la première !</a></p>
+            </div>
+        {% endif %}
+    </div>
+    <footer>
+        <p>&copy; {{ year }} SparkHub — Développé par <strong>Seïkī</strong></p>
+    </footer>
+</body>
+  </html>
