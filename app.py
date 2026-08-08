@@ -4,7 +4,6 @@ import datetime
 import requests
 from bs4 import BeautifulSoup
 import re
-import sqlite3
 import bcrypt
 
 app = Flask(__name__)
@@ -18,9 +17,6 @@ login_manager.init_app(app)
 login_manager.login_view = 'connexion'
 login_manager.login_message = "Veuillez vous connecter pour accéder à cette page."
 
-# =============================================
-# 🧠 MODÈLE UTILISATEUR POUR FLASK-LOGIN
-# =============================================
 class User(UserMixin):
     def __init__(self, id, email):
         self.id = id
@@ -42,7 +38,9 @@ SCRAPERAPI_KEY = "f554d91dca9a43b2b06744478422a674"
 # =============================================
 # 🧠 BASE DE DONNÉES
 # =============================================
-from database import init_db, get_prices, save_price, save_annonce, get_all_annonces, get_user_by_email, create_user, get_commentaires, save_commentaire
+from database import *
+
+# Initialiser la base
 init_db()
 
 # =============================================
@@ -179,19 +177,15 @@ def guides():
     return render_template('guides.html', year=datetime.datetime.now().year)
 
 # =============================================
-# 🛒 MARKETPLACE
+# 🛒 MARKETPLACE (public, mais les commentaires sont protégés)
 # =============================================
 @app.route('/marketplace')
 def marketplace():
-    conn = sqlite3.connect('/home/Sparkhub001/sparkhub/prices.db')
-    c = conn.cursor()
-    c.execute("SELECT id, titre, description, prix, contact, date FROM annonces ORDER BY date DESC")
-    annonces = c.fetchall()
-    conn.close()
+    annonces = get_all_annonces()
     return render_template('marketplace.html', annonces=annonces, year=datetime.datetime.now().year)
 
 # =============================================
-# 📝 DÉPOSER UNE ANNONCE (protégé par connexion)
+# 📝 DÉPOSER UNE ANNONCE
 # =============================================
 @app.route('/deposer-annonce', methods=['GET', 'POST'])
 @login_required
@@ -201,7 +195,7 @@ def deposer_annonce():
         description = request.form.get('description')
         prix = request.form.get('prix')
         contact = request.form.get('contact')
-        save_annonce(titre, description, prix, contact, current_user.id)
+        save_annonce(current_user.id, titre, description, prix, contact)
         flash("Annonce publiée avec succès !", "success")
         return redirect('/marketplace')
     return render_template('deposer.html', year=datetime.datetime.now().year)
@@ -232,9 +226,8 @@ def inscription():
             return redirect('/inscription')
 
         hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-
         if create_user(email, hashed.decode('utf-8')):
-            flash("Compte créé avec succès ! Vous pouvez vous connecter.", "success")
+            flash("Compte créé avec succès !", "success")
             return redirect('/connexion')
         else:
             flash("Cet email est déjà utilisé.", "danger")
@@ -276,7 +269,7 @@ def deconnexion():
     return redirect('/')
 
 # =============================================
-# 👤 MON COMPTE
+# 👤 MON COMPTE (liste des annonces de l'utilisateur)
 # =============================================
 @app.route('/mon-compte')
 @login_required
@@ -291,49 +284,41 @@ def mon_compte():
 # =============================================
 # ✏️ MODIFIER UNE ANNONCE
 # =============================================
-@app.route('/modifier-annonce/<int:id>', methods=['GET', 'POST'])
+@app.route('/modifier-annonce/<int:annonce_id>', methods=['GET', 'POST'])
 @login_required
-def modifier_annonce(id):
-    conn = sqlite3.connect('/home/Sparkhub001/sparkhub/prices.db')
-    c = conn.cursor()
+def modifier_annonce(annonce_id):
+    annonce = get_annonce_by_id(annonce_id)
+    if not annonce or annonce[1] != current_user.id:
+        flash("Vous n'avez pas le droit de modifier cette annonce.", "danger")
+        return redirect('/mon-compte')
     
     if request.method == 'POST':
         titre = request.form.get('titre')
         description = request.form.get('description')
         prix = request.form.get('prix')
         contact = request.form.get('contact')
-        c.execute("UPDATE annonces SET titre = ?, description = ?, prix = ?, contact = ? WHERE id = ? AND user_id = ?",
-                  (titre, description, prix, contact, id, current_user.id))
-        conn.commit()
-        conn.close()
+        update_annonce(annonce_id, current_user.id, titre, description, prix, contact)
         flash("Annonce modifiée avec succès.", "success")
         return redirect('/mon-compte')
     
-    c.execute("SELECT titre, description, prix, contact FROM annonces WHERE id = ? AND user_id = ?", (id, current_user.id))
-    annonce = c.fetchone()
-    conn.close()
-    if not annonce:
-        flash("Annonce introuvable ou vous n'avez pas les droits.", "danger")
-        return redirect('/mon-compte')
-    
-    return render_template('modifier_annonce.html', annonce=annonce, id=id, year=datetime.datetime.now().year)
+    return render_template('modifier_annonce.html', annonce=annonce, year=datetime.datetime.now().year)
 
 # =============================================
 # 🗑️ SUPPRIMER UNE ANNONCE
 # =============================================
-@app.route('/supprimer-annonce/<int:id>')
+@app.route('/supprimer-annonce/<int:annonce_id>')
 @login_required
-def supprimer_annonce(id):
-    conn = sqlite3.connect('/home/Sparkhub001/sparkhub/prices.db')
-    c = conn.cursor()
-    c.execute("DELETE FROM annonces WHERE id = ? AND user_id = ?", (id, current_user.id))
-    conn.commit()
-    conn.close()
-    flash("Annonce supprimée.", "info")
+def supprimer_annonce(annonce_id):
+    annonce = get_annonce_by_id(annonce_id)
+    if not annonce or annonce[1] != current_user.id:
+        flash("Vous n'avez pas le droit de supprimer cette annonce.", "danger")
+    else:
+        delete_annonce(annonce_id, current_user.id)
+        flash("Annonce supprimée.", "info")
     return redirect('/mon-compte')
 
 # =============================================
-# 💬 COMMENTER UNE ANNONCE
+# 💬 COMMENTAIRES
 # =============================================
 @app.route('/commenter/<int:annonce_id>', methods=['POST'])
 @login_required
