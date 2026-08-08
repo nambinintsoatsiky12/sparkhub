@@ -6,30 +6,25 @@
     <title>Marketplace — SparkHub</title>
     <link rel="icon" href="{{ url_for('static', filename='images/logo.svg') }}" type="image/svg+xml">
     <style>
-        body { font-family: 'Inter', sans-serif; background: #fafafa; margin: 0; padding: 0; }
-        .container { max-width: 1000px; margin: 40px auto; padding: 0 20px; }
-        .navbar { padding: 16px 30px; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0,0,0,0.04); display: flex; justify-content: space-between; align-items: center; }
-        .navbar img { height: 38px; }
-        .navbar a { color: #0f172a; text-decoration: none; font-weight: 600; }
-        .card { background: white; padding: 24px; border-radius: 20px; border: 1px solid #e5e7eb; margin-bottom: 20px; }
-        .card .prix { font-size: 1.5rem; font-weight: 700; color: #f97316; }
-        .card .contact { color: #475569; margin-top: 8px; }
-        .card .meta { font-size: 0.8rem; color: #94a3b8; margin-top: 4px; }
-        .btn-depot { background: #0f172a; color: white; padding: 14px 32px; border-radius: 40px; text-decoration: none; display: inline-block; margin-bottom: 30px; }
-        .btn-depot:hover { background: #f97316; }
-        .btn-comment { background: #f97316; color: white; border: none; padding: 8px 20px; border-radius: 40px; font-weight: 600; cursor: pointer; }
-        .btn-comment:hover { background: #ea580c; }
-        .comment-box { background: #f9fafb; padding: 12px; border-radius: 12px; margin-top: 8px; }
-        .comment-box .email { font-weight: 600; font-size: 0.85rem; color: #0f172a; }
-        .comment-box .text { font-size: 0.95rem; margin: 4px 0; }
-        .comment-box .date { font-size: 0.7rem; color: #94a3b8; }
-        footer { text-align: center; padding: 25px; background: #0f172a; color: #cbd5e1; margin-top: 40px; }
-        footer strong { color: #f97316; }
-        .flash { padding: 12px; border-radius: 12px; margin-bottom: 16px; }
-        .flash.success { background: #d1fae5; color: #065f46; }
-        .flash.danger { background: #fee2e2; color: #991b1b; }
-        .flash.info { background: #e0f2fe; color: #0369a1; }
-        @media (max-width: 600px) { .navbar { flex-wrap: wrap; gap: 10px; } }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: 'Inter', sans-serif; background: #fafafa; margin:0; padding:0; }
+        .navbar { padding:16px 30px; background:rgba(255,255,255,0.9); backdrop-filter:blur(10px); border-bottom:1px solid rgba(0,0,0,0.04); display:flex; justify-content:space-between; align-items:center; }
+        .navbar img { height:38px; }
+        .navbar a { color:#0f172a; text-decoration:none; font-weight:600; margin-left:16px; }
+        .container { max-width:1000px; margin:40px auto; padding:0 20px; }
+        .card { background:white; padding:24px; border-radius:20px; border:1px solid #e5e7eb; margin-bottom:20px; }
+        .card img { max-width:100%; max-height:300px; border-radius:12px; margin-bottom:12px; object-fit:cover; }
+        .btn { padding:8px 20px; border-radius:40px; text-decoration:none; font-weight:600; display:inline-block; }
+        .btn-primary { background:#f97316; color:white; }
+        .btn-secondary { background:#e5e7eb; color:#111827; }
+        .flash { padding:12px; border-radius:12px; margin-bottom:16px; }
+        .flash.success { background:#d1fae5; color:#065f46; }
+        footer { text-align:center; padding:25px; background:#0f172a; color:#cbd5e1; margin-top:40px; }
+        footer strong { color:#f97316; }
+        .share-btn { display:inline-block; padding:6px 16px; border-radius:40px; text-decoration:none; font-size:0.8rem; margin-right:6px; }
+        .share-fb { background:#1877f2; color:white; }
+        .share-wa { background:#25d366; color:white; }
+        @media (max-width:600px) { .navbar { flex-wrap:wrap; gap:10px; } }
     </style>
 </head>
 <body>
@@ -37,29 +32,18 @@
         <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="SparkHub">
         <div>
             <a href="/">Accueil</a>
-            <a href="/marketplace" style="margin-left:16px; font-weight:700; color:#f97316;">Marketplace</a>
+            <a href="/deposer-annonce">➕ Publier</a>
             {% if current_user.is_authenticated %}
-                <a href="/mon-compte" style="margin-left:16px;">👤 Mon compte</a>
-                <a href="/deconnexion" style="margin-left:16px; color:#dc2626;">Déconnexion</a>
+                <a href="/mon-compte">👤 Mon compte</a>
+                <a href="/deconnexion" style="color:#dc2626;">Déconnexion</a>
             {% else %}
-                <a href="/connexion" style="margin-left:16px;">Connexion</a>
-                <a href="/inscription" style="margin-left:16px;">Inscription</a>
+                <a href="/connexion">🔐 Connexion</a>
             {% endif %}
         </div>
     </nav>
-
     <div class="container">
         <h1>🛒 Marketplace</h1>
-        <p style="color: #6b7280;">Trouvez des produits ou déposez vos annonces.</p>
-
-        {% if current_user.is_authenticated %}
-            <a href="/deposer-annonce" class="btn-depot">➕ Déposer une annonce</a>
-        {% else %}
-            <div style="background:#fef3c7; padding:16px; border-radius:16px; margin-bottom:20px;">
-                🔒 <strong>Connectez-vous</strong> pour publier des annonces et commenter.
-                <a href="/connexion" style="color:#f97316; font-weight:600; margin-left:10px;">Se connecter</a>
-            </div>
-        {% endif %}
+        <p style="color:#6b7280;">Trouvez des produits ou déposez vos annonces.</p>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% for category, message in messages %}
@@ -67,48 +51,60 @@
             {% endfor %}
         {% endwith %}
 
-        {% if annonces %}
-            {% for id, user_id, titre, description, prix, contact, date, email in annonces %}
-            <div class="card">
-                <h3>{{ titre }}</h3>
-                <p>{{ description }}</p>
-                <div class="prix">💰 {{ prix }}</div>
-                <div class="contact">📞 {{ contact }}</div>
-                <div class="meta">📅 {{ date }} · 👤 {{ email }}</div>
-                
-                <!-- ===== SECTION COMMENTAIRES ===== -->
-                <div style="margin-top:16px; border-top:1px solid #f3f4f6; padding-top:12px;">
-                    <h4 style="font-size:0.9rem; margin-bottom:8px;">💬 Commentaires</h4>
-                    {% for c in get_commentaires(id) %}
-                        <div class="comment-box">
-                            <div class="email">{{ c.email }}</div>
-                            <div class="text">{{ c.commentaire }}</div>
-                            <div class="date">{{ c.date }}</div>
-                        </div>
-                    {% else %}
-                        <p style="color:#94a3b8; font-size:0.85rem;">Aucun commentaire pour l'instant.</p>
-                    {% endfor %}
-                    
-                    {% if current_user.is_authenticated %}
-                        <form action="/commenter/{{ id }}" method="POST" style="display:flex; gap:8px; margin-top:8px;">
-                            <input type="text" name="commentaire" placeholder="Votre commentaire..." style="flex:1; padding:8px 12px; border:1px solid #e5e7eb; border-radius:40px; font-size:0.9rem;" required>
-                            <button type="submit" class="btn-comment">Envoyer</button>
-                        </form>
-                    {% else %}
-                        <p style="font-size:0.8rem; color:#94a3b8;">Connectez-vous pour commenter.</p>
-                    {% endif %}
-                </div>
+        {% if not current_user.is_authenticated %}
+            <div style="background:#fef3c7; padding:16px; border-radius:16px; margin-bottom:20px;">
+                🔒 <strong>Connectez-vous</strong> pour voir les coordonnées des vendeurs et publier vos annonces.
+                <a href="/connexion" style="color:#f97316; font-weight:600; margin-left:10px;">Se connecter</a>
             </div>
-            {% endfor %}
-        {% else %}
-            <p style="color:#94a3b8;">Aucune annonce pour le moment. Soyez le premier à déposer !</p>
         {% endif %}
 
-        <a href="/" style="display:inline-block; margin-top: 20px; color: #f97316; text-decoration: none;">← Retour à l'accueil</a>
-    </div>
+        {% for id, user_id, titre, description, prix, contact, image_url, categorie, date in annonces %}
+        <div class="card">
+            {% if image_url %}
+                <img src="{{ image_url }}" alt="{{ titre }}">
+            {% endif %}
+            <h3>{{ titre }}</h3>
+            <p>{{ description }}</p>
+            <div style="font-weight:700; color:#f97316;">💰 {{ prix }}</div>
+            <div style="color:#475569;">📂 {{ categorie }}</div>
+            {% if current_user.is_authenticated %}
+                <div style="color:#475569;">📞 {{ contact }}</div>
+            {% else %}
+                <div style="color:#94a3b8;">🔒 Connectez-vous pour voir le contact</div>
+            {% endif %}
+            <small style="color:#94a3b8;">📅 {{ date }}</small>
 
+            <!-- Partager -->
+            <div style="margin-top:12px;">
+                <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.url }}" target="_blank" class="share-btn share-fb">📘 Partager</a>
+                <a href="https://api.whatsapp.com/send?text={{ request.url }}" target="_blank" class="share-btn share-wa">💬 WhatsApp</a>
+            </div>
+
+            <!-- Commentaires -->
+            <div style="margin-top:16px; border-top:1px solid #f3f4f6; padding-top:12px;">
+                <h4 style="font-size:0.9rem; margin-bottom:8px;">💬 Commentaires</h4>
+                {% for c in get_commentaires(id) %}
+                    <div style="background:#f9fafb; padding:8px 12px; border-radius:12px; margin-bottom:6px;">
+                        <strong style="font-size:0.8rem;">{{ c.email }}</strong>
+                        <p style="margin:4px 0; font-size:0.9rem;">{{ c.commentaire }}</p>
+                        <small style="color:#94a3b8; font-size:0.7rem;">{{ c.date }}</small>
+                    </div>
+                {% endfor %}
+                {% if current_user.is_authenticated %}
+                    <form action="/commenter/{{ id }}" method="POST" style="display:flex; gap:8px; margin-top:8px;">
+                        <input type="text" name="commentaire" placeholder="Votre commentaire..." style="flex:1; padding:8px 12px; border:1px solid #e5e7eb; border-radius:40px; font-size:0.9rem;" required>
+                        <button type="submit" style="background:#f97316; color:white; border:none; padding:8px 20px; border-radius:40px; font-weight:600; cursor:pointer;">Envoyer</button>
+                    </form>
+                {% else %}
+                    <p style="font-size:0.8rem; color:#94a3b8;">Connectez-vous pour commenter.</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        <a href="/" style="display:inline-block; margin-top:20px; color:#f97316; text-decoration:none;">← Retour à l'accueil</a>
+    </div>
     <footer>
         <p>&copy; {{ year }} SparkHub — Développé par <strong>Seïkī</strong></p>
     </footer>
 </body>
-        </html>
+</html>
