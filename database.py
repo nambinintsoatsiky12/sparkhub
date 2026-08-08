@@ -1,14 +1,12 @@
 import sqlite3
 import datetime
 
-# ⚠️ CORRECTION : chemin vers le fichier, pas vers le dossier
 DB_PATH = '/home/Sparkhub001/sparkhub/prices.db'
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-
-    # Table des prix (existante)
+    # Table des prix (cache pour les recherches)
     c.execute('''
         CREATE TABLE IF NOT EXISTS prices (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -19,8 +17,7 @@ def init_db():
             updated_at TEXT
         )
     ''')
-
-    # ✅ NOUVELLE TABLE : annonces (pour la Marketplace)
+    # Table des annonces (Marketplace)
     c.execute('''
         CREATE TABLE IF NOT EXISTS annonces (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,7 +28,6 @@ def init_db():
             date TEXT
         )
     ''')
-
     conn.commit()
     conn.close()
 
@@ -46,7 +42,6 @@ def get_prices(key):
 def save_price(key, title, price, source):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    # ✅ CORRECTION : on définit "now" avant de l'utiliser
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     c.execute("DELETE FROM prices WHERE keyword = ? AND title = ?", (key, title))
     c.execute("INSERT INTO prices (keyword, title, price, source, updated_at) VALUES (?, ?, ?, ?, ?)",
@@ -54,21 +49,21 @@ def save_price(key, title, price, source):
     conn.commit()
     conn.close()
 
-# ✅ NOUVELLE FONCTION : pour récupérer les annonces
-def get_annonces():
+# ✅ NOUVELLE FONCTION pour sauvegarder une annonce
+def save_annonce(titre, description, prix, contact):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    c.execute("INSERT INTO annonces (titre, description, prix, contact, date) VALUES (?, ?, ?, ?, ?)",
+              (titre, description, prix, contact, now))
+    conn.commit()
+    conn.close()
+
+# ✅ NOUVELLE FONCTION pour récupérer toutes les annonces
+def get_all_annonces():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("SELECT titre, description, prix, contact, date FROM annonces ORDER BY date DESC")
     rows = c.fetchall()
     conn.close()
     return rows
-
-# ✅ NOUVELLE FONCTION : pour ajouter une annonce
-def save_annonce(titre, description, prix, contact):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-    c.execute("INSERT INTO annonces (titre, description, prix, contact, date) VALUES (?, ?, ?, ?, ?)",
-              (titre, description, prix, contact, now))
-    conn.commit()
-    conn.close()
