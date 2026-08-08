@@ -7,7 +7,7 @@ def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
 
-    # Table des prix (cache pour les recherches)
+    # Table des prix (cache)
     c.execute('''
         CREATE TABLE IF NOT EXISTS prices (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -19,20 +19,22 @@ def init_db():
         )
     ''')
 
-    # Table des annonces (Marketplace) avec user_id
+    # Table des annonces (avec image, catégorie, user_id)
     c.execute('''
-    CREATE TABLE IF NOT EXISTS annonces (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        titre TEXT,
-        description TEXT,
-        prix TEXT,
-        contact TEXT,
-        image_url TEXT,
-        date TEXT,
-        FOREIGN KEY(user_id) REFERENCES users(id)
-    )
-''')
+        CREATE TABLE IF NOT EXISTS annonces (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            titre TEXT,
+            description TEXT,
+            prix TEXT,
+            contact TEXT,
+            image_url TEXT,
+            categorie TEXT,
+            date TEXT,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    ''')
+
     # Table des utilisateurs
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
@@ -56,12 +58,25 @@ def init_db():
         )
     ''')
 
+    # Table des notes
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS notes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            annonce_id INTEGER,
+            user_id INTEGER,
+            note INTEGER,
+            commentaire TEXT,
+            date TEXT,
+            FOREIGN KEY(annonce_id) REFERENCES annonces(id),
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    ''')
+
     conn.commit()
     conn.close()
-    print("✅ Base de données initialisée avec succès.")
+    print("✅ Base de données initialisée.")
 
-
-# ========== FONCTIONS POUR LES PRIX ==========
+# ===== PRIX =====
 def get_prices(key):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -80,58 +95,48 @@ def save_price(key, title, price, source):
     conn.commit()
     conn.close()
 
-
-# ========== FONCTIONS POUR LES ANNONCES ==========
-def save_annonce(user_id, titre, description, prix, contact, image_url):
+# ===== ANNONCES =====
+def save_annonce(user_id, titre, description, prix, contact, image_url, categorie):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    c.execute("INSERT INTO annonces (user_id, titre, description, prix, contact, image_url, date) VALUES (?, ?, ?, ?, ?, ?, ?)",
-              (user_id, titre, description, prix, contact, image_url, now))
+    c.execute("INSERT INTO annonces (user_id, titre, description, prix, contact, image_url, categorie, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+              (user_id, titre, description, prix, contact, image_url, categorie, now))
     conn.commit()
     conn.close()
+
 def get_all_annonces():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("""
-        SELECT annonces.id, annonces.user_id, annonces.titre, annonces.description, 
-               annonces.prix, annonces.contact, annonces.date, users.email 
-        FROM annonces 
-        JOIN users ON annonces.user_id = users.id 
-        ORDER BY annonces.date DESC
-    """)
+    c.execute("SELECT id, user_id, titre, description, prix, contact, image_url, categorie, date FROM annonces ORDER BY date DESC")
     rows = c.fetchall()
     conn.close()
     return rows
 
-def get_annonce_by_id(annonce_id):
+def get_user_annonces(user_id):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("SELECT id, user_id, titre, description, prix, contact FROM annonces WHERE id = ?", (annonce_id,))
-    row = c.fetchone()
+    c.execute("SELECT id, titre, description, prix, contact, image_url, categorie, date FROM annonces WHERE user_id = ? ORDER BY date DESC", (user_id,))
+    rows = c.fetchall()
     conn.close()
-    return row
+    return rows
 
-def update_annonce(annonce_id, user_id, titre, description, prix, contact):
+def update_annonce(id, titre, description, prix, contact, image_url, categorie):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("""
-        UPDATE annonces 
-        SET titre = ?, description = ?, prix = ?, contact = ? 
-        WHERE id = ? AND user_id = ?
-    """, (titre, description, prix, contact, annonce_id, user_id))
+    c.execute("UPDATE annonces SET titre = ?, description = ?, prix = ?, contact = ?, image_url = ?, categorie = ? WHERE id = ?",
+              (titre, description, prix, contact, image_url, categorie, id))
     conn.commit()
     conn.close()
 
-def delete_annonce(annonce_id, user_id):
+def delete_annonce(id):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("DELETE FROM annonces WHERE id = ? AND user_id = ?", (annonce_id, user_id))
+    c.execute("DELETE FROM annonces WHERE id = ?", (id,))
     conn.commit()
     conn.close()
 
-
-# ========== FONCTIONS POUR LES COMMENTAIRES ==========
+# ===== COMMENTAIRES =====
 def save_commentaire(annonce_id, user_id, commentaire):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -145,18 +150,17 @@ def get_commentaires(annonce_id):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""
-        SELECT commentaires.commentaire, commentaires.date, users.email 
-        FROM commentaires 
-        JOIN users ON commentaires.user_id = users.id 
-        WHERE annonce_id = ? 
+        SELECT commentaires.commentaire, commentaires.date, users.email
+        FROM commentaires
+        JOIN users ON commentaires.user_id = users.id
+        WHERE annonce_id = ?
         ORDER BY commentaires.date DESC
     """, (annonce_id,))
     rows = c.fetchall()
     conn.close()
     return [{"commentaire": r[0], "date": r[1], "email": r[2]} for r in rows]
 
-
-# ========== FONCTIONS POUR LES UTILISATEURS ==========
+# ===== UTILISATEURS =====
 def get_user_by_email(email):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -189,4 +193,4 @@ def create_user(email, hashed_password):
         return True
     except sqlite3.IntegrityError:
         conn.close()
-        return False  # Email déjà utilisé
+        return False
