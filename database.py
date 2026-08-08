@@ -82,15 +82,14 @@ def save_price(key, title, price, source):
 
 
 # ========== FONCTIONS POUR LES ANNONCES ==========
-def save_annonce(user_id, titre, description, prix, contact):
+def save_annonce(user_id, titre, description, prix, contact, image_url):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    c.execute("INSERT INTO annonces (user_id, titre, description, prix, contact, date) VALUES (?, ?, ?, ?, ?, ?)",
-              (user_id, titre, description, prix, contact, now))
+    c.execute("INSERT INTO annonces (user_id, titre, description, prix, contact, image_url, date) VALUES (?, ?, ?, ?, ?, ?, ?)",
+              (user_id, titre, description, prix, contact, image_url, now))
     conn.commit()
     conn.close()
-
 def get_all_annonces():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
