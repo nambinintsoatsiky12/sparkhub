@@ -76,7 +76,7 @@ def scout():
                 else:
                     search_url = f"https://www.amazon.com/s?k={query.replace(' ', '+')}"
 
-                scraperapi_url = f"https://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={search_url}&country_code={country}&render=true"
+                scraperapi_url = f"https://api.allorigins.win/raw?url={search_url}"
                 response = requests.get(scraperapi_url, timeout=30, proxies={"http": None, "https": None})
                 html_content = response.text
 
