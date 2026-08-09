@@ -13,7 +13,6 @@ app.secret_key = "SPARKHUB_SECRET_KEY_CHANGE_ME"
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'connexion'
-login_manager.login_message = "Veuillez vous connecter pour accéder à cette page."
 
 class User(UserMixin):
     def __init__(self, id, email):
@@ -22,25 +21,123 @@ class User(UserMixin):
 
 @login_manager.user_loader
 def load_user(user_id):
-    from database import get_user_by_id
-    user = get_user_by_id(user_id)
-    if user:
-        return User(user['id'], user['email'])
+    conn = sqlite3.connect('/home/Sparkhub001/sparkhub/prices.db')
+    c = conn.cursor()
+    c.execute("SELECT id, email FROM users WHERE id = ?", (user_id,))
+    row = c.fetchone()
+    conn.close()
+    if row:
+        return User(row[0], row[1])
     return None
 
-# ===== IMPORTS =====
-from database import (
-    init_db, get_prices, save_price,
-    save_annonce, get_all_annonces, get_user_annonces, update_annonce, delete_annonce,
-    save_commentaire, get_commentaires,
-    get_user_by_email, create_user
-)
-init_db()
-
-# ===== CLÉ SCRAPERAPI =====
+DB_PATH = '/home/Sparkhub001/sparkhub/prices.db'
 SCRAPERAPI_KEY = "f554d91dca9a43b2b06744478422a674"
 
-# ===== ROUTES =====
+def get_prices(key):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT title, price, source, updated_at FROM prices WHERE keyword = ?", (key,))
+    rows = c.fetchall()
+    conn.close()
+    return [{"title": r[0], "price": r[1], "source": r[2], "updated_at": r[3]} for r in rows]
+
+def save_price(key, title, price, source):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    c.execute("DELETE FROM prices WHERE keyword = ? AND title = ?", (key, title))
+    c.execute("INSERT INTO prices (keyword, title, price, source, updated_at) VALUES (?, ?, ?, ?, ?)",
+              (key, title, price, source, now))
+    conn.commit()
+    conn.close()
+
+def get_all_annonces():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT id, user_id, titre, description, prix, contact, image_url, categorie, date FROM annonces ORDER BY date DESC")
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+def get_user_annonces(user_id):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT id, titre, description, prix, contact, image_url, categorie, date FROM annonces WHERE user_id = ? ORDER BY date DESC", (user_id,))
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+def save_annonce(user_id, titre, description, prix, contact, image_url, categorie):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    c.execute("INSERT INTO annonces (user_id, titre, description, prix, contact, image_url, categorie, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+              (user_id, titre, description, prix, contact, image_url, categorie, now))
+    conn.commit()
+    conn.close()
+
+def update_annonce(id, titre, description, prix, contact, image_url, categorie):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("UPDATE annonces SET titre = ?, description = ?, prix = ?, contact = ?, image_url = ?, categorie = ? WHERE id = ?",
+              (titre, description, prix, contact, image_url, categorie, id))
+    conn.commit()
+    conn.close()
+
+def delete_annonce(id):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("DELETE FROM annonces WHERE id = ?", (id,))
+    conn.commit()
+    conn.close()
+
+def get_commentaires(annonce_id):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("""
+        SELECT commentaires.commentaire, commentaires.date, users.email
+        FROM commentaires
+        JOIN users ON commentaires.user_id = users.id
+        WHERE annonce_id = ?
+        ORDER BY commentaires.date DESC
+    """, (annonce_id,))
+    rows = c.fetchall()
+    conn.close()
+    return [{"commentaire": r[0], "date": r[1], "email": r[2]} for r in rows]
+
+def save_commentaire(annonce_id, user_id, commentaire):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    c.execute("INSERT INTO commentaires (annonce_id, user_id, commentaire, date) VALUES (?, ?, ?, ?)",
+              (annonce_id, user_id, commentaire, now))
+    conn.commit()
+    conn.close()
+
+def get_user_by_email(email):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT id, email, password FROM users WHERE email = ?", (email,))
+    row = c.fetchone()
+    conn.close()
+    if row:
+        return {"id": row[0], "email": row[1], "password": row[2]}
+    return None
+
+def create_user(email, hashed_password):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    try:
+        c.execute("INSERT INTO users (email, password, created_at) VALUES (?, ?, ?)",
+                  (email, hashed_password, now))
+        conn.commit()
+        conn.close()
+        return True
+    except sqlite3.IntegrityError:
+        conn.close()
+        return False
+
 @app.route('/')
 def home():
     return render_template('index.html', year=datetime.datetime.now().year)
@@ -76,11 +173,10 @@ def scout():
                 else:
                     search_url = f"https://www.amazon.com/s?k={query.replace(' ', '+')}"
 
-                scraperapi_url = f"https://api.allorigins.win/raw?url={search_url}"
+                scraperapi_url = f"https://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={search_url}&country_code={country}&render=true"
                 response = requests.get(scraperapi_url, timeout=30, proxies={"http": None, "https": None})
-                html_content = response.text
+                soup = BeautifulSoup(response.text, 'html.parser')
 
-                soup = BeautifulSoup(html_content, 'html.parser')
                 products = soup.find_all('div', {'data-component-type': 's-search-result'})
                 if not products:
                     products = soup.find_all('article', class_='prd')
@@ -111,12 +207,7 @@ def scout():
                         price_clean = re.sub(r'[^\d\s,.]', '', price).strip()
                         price_display = f"{price_clean} {currency}" if price_clean else price
                         save_price(cache_key, title, price_display, f"ScraperAPI ({country})")
-                        results.append({
-                            'title': title,
-                            'price': price_display,
-                            'source': f"ScraperAPI ({country})",
-                            'affiliate_link': affiliate_link
-                        })
+                        results.append({'title': title, 'price': price_display, 'source': f"ScraperAPI ({country})", 'affiliate_link': affiliate_link})
                         count += 1
 
                 if not results:
@@ -133,31 +224,25 @@ def scout():
                             price = price_tag.text.strip()
                             price_display = f"{price} Ar"
                             save_price(cache_key, title, price_display, "ScraperAPI (Jumia)")
-                            results.append({
-                                'title': title,
-                                'price': price_display,
-                                'source': "ScraperAPI (Jumia)",
-                                'affiliate_link': "#"
-                            })
+                            results.append({'title': title, 'price': price_display, 'source': "ScraperAPI (Jumia)", 'affiliate_link': "#"})
+
                 updated_at = f"Aujourd'hui ({country})"
+
             except Exception as e:
                 results = [{'title': f"Erreur: {str(e)[:80]}", 'price': 'Vérifie ta clé ScraperAPI', 'source': 'Info', 'affiliate_link': '#'}]
                 updated_at = "API indisponible"
 
     return render_template('scout.html', query=query, results=results, country=country, updated_at=updated_at, year=datetime.datetime.now().year)
 
-# ===== GUIDES =====
 @app.route('/guides')
 def guides():
     return render_template('guides.html', year=datetime.datetime.now().year)
 
-# ===== MARKETPLACE =====
 @app.route('/marketplace')
 def marketplace():
     annonces = get_all_annonces()
-    return render_template('marketplace.html', annonces=annonces, year=datetime.datetime.now().year)
+    return render_template('marketplace.html', annonces=annonces, year=datetime.datetime.now().year, get_commentaires=get_commentaires)
 
-# ===== DÉPOSER =====
 @app.route('/deposer-annonce', methods=['GET', 'POST'])
 @login_required
 def deposer_annonce():
@@ -169,22 +254,20 @@ def deposer_annonce():
         image_url = request.form.get('image_url')
         categorie = request.form.get('categorie')
         save_annonce(current_user.id, titre, description, prix, contact, image_url, categorie)
-        flash("Annonce publiée avec succès !", "success")
+        flash("Annonce publiée !", "success")
         return redirect('/marketplace')
     return render_template('deposer.html', year=datetime.datetime.now().year)
 
-# ===== MON COMPTE =====
 @app.route('/mon-compte')
 @login_required
 def mon_compte():
     annonces = get_user_annonces(current_user.id)
     return render_template('mon_compte.html', annonces=annonces, year=datetime.datetime.now().year)
 
-# ===== MODIFIER =====
 @app.route('/modifier-annonce/<int:id>', methods=['GET', 'POST'])
 @login_required
 def modifier_annonce(id):
-    conn = sqlite3.connect('/home/Sparkhub001/sparkhub/prices.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     if request.method == 'POST':
         titre = request.form.get('titre')
@@ -207,11 +290,10 @@ def modifier_annonce(id):
         return redirect('/mon-compte')
     return render_template('modifier_annonce.html', annonce=annonce, id=id, year=datetime.datetime.now().year)
 
-# ===== SUPPRIMER =====
 @app.route('/supprimer-annonce/<int:id>')
 @login_required
 def supprimer_annonce(id):
-    conn = sqlite3.connect('/home/Sparkhub001/sparkhub/prices.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("DELETE FROM annonces WHERE id = ? AND user_id = ?", (id, current_user.id))
     conn.commit()
@@ -219,7 +301,6 @@ def supprimer_annonce(id):
     flash("Annonce supprimée.", "info")
     return redirect('/mon-compte')
 
-# ===== COMMENTAIRE =====
 @app.route('/commenter/<int:annonce_id>', methods=['POST'])
 @login_required
 def commenter(annonce_id):
@@ -229,12 +310,10 @@ def commenter(annonce_id):
         flash("Commentaire ajouté.", "success")
     return redirect('/marketplace')
 
-# ===== PAIEMENTS =====
 @app.route('/paiements')
 def paiements():
     return render_template('paiements.html', year=datetime.datetime.now().year)
 
-# ===== INSCRIPTION =====
 @app.route('/inscription', methods=['GET', 'POST'])
 def inscription():
     if request.method == 'POST':
@@ -256,7 +335,6 @@ def inscription():
             return redirect('/inscription')
     return render_template('inscription.html', year=datetime.datetime.now().year)
 
-# ===== CONNEXION =====
 @app.route('/connexion', methods=['GET', 'POST'])
 def connexion():
     if request.method == 'POST':
@@ -272,7 +350,6 @@ def connexion():
             flash("Email ou mot de passe incorrect.", "danger")
     return render_template('connexion.html', year=datetime.datetime.now().year)
 
-# ===== DÉCONNEXION =====
 @app.route('/deconnexion')
 @login_required
 def deconnexion():
@@ -280,8 +357,8 @@ def deconnexion():
     flash("Déconnecté.", "info")
     return redirect('/')
 
-# ===== WEBHOOK =====
 SECRET_TOKEN = "SPARKHUB_SUPER_SECRET_2026"
+
 @app.route('/webhook-update', methods=['POST'])
 def webhook_update():
     token = request.headers.get('X-Update-Token')
