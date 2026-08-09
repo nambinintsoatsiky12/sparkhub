@@ -173,6 +173,7 @@ def scout():
                 else:
                     search_url = f"https://www.amazon.com/s?k={query.replace(' ', '+')}"
 
+                # ✅ Appel direct à ScraperAPI (correction)
                 scraperapi_url = f"https://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={search_url}&country_code={country}&render=true"
                 response = requests.get(scraperapi_url, timeout=30, proxies={"http": None, "https": None})
                 soup = BeautifulSoup(response.text, 'html.parser')
@@ -356,6 +357,15 @@ def deconnexion():
     logout_user()
     flash("Déconnecté.", "info")
     return redirect('/')
+
+@app.route('/test-api')
+def test_api():
+    url = f"https://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url=https://www.amazon.com/s?k=iphone&country_code=US&render=true"
+    try:
+        r = requests.get(url, timeout=30, proxies={"http": None, "https": None})
+        return f"Succès ! Longueur du HTML : {len(r.text)} caractères"
+    except Exception as e:
+        return f"Erreur : {str(e)}"
 
 SECRET_TOKEN = "SPARKHUB_SUPER_SECRET_2026"
 
