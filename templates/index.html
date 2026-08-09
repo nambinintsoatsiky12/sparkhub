@@ -13,7 +13,6 @@
             background: #ffffff;
             color: #111827;
         }
-        /* ===== MENU HAMBURGER ===== */
         .navbar {
             display: flex;
             justify-content: space-between;
@@ -50,7 +49,6 @@
         .navbar .hamburger:hover {
             background: #f1f5f9;
         }
-        /* ===== MENU DÉROULANT (side drawer) ===== */
         .drawer {
             position: fixed;
             top: 0;
@@ -111,21 +109,14 @@
             text-align: center;
             font-weight: 600;
             margin-top: 12px;
+            border-color: #f97316;
+            color: #f97316 !important;
         }
         .drawer .btn-outline:hover {
             background: #f97316;
             color: white !important;
             border-color: #f97316;
         }
-        .drawer .btn-outline.danger {
-            border-color: #dc2626;
-            color: #dc2626 !important;
-        }
-        .drawer .btn-outline.danger:hover {
-            background: #dc2626;
-            color: white !important;
-        }
-        /* ===== RECHERCHE DANS LE MENU ===== */
         .drawer .search-form {
             margin: 16px 0 20px;
             display: flex;
@@ -174,7 +165,6 @@
         .drawer .search-form button:hover {
             background: #ea580c;
         }
-        /* ===== OVERLAY ===== */
         .overlay {
             position: fixed;
             inset: 0;
@@ -188,8 +178,6 @@
             opacity: 1;
             pointer-events: auto;
         }
-
-        /* ===== LANDING / HERO ===== */
         .landing {
             max-width: 1100px;
             margin: 60px auto 40px;
@@ -260,8 +248,6 @@
             color: #6b7280;
             margin: 0;
         }
-
-        /* ===== FOOTER ===== */
         footer {
             text-align: center;
             padding: 32px 20px;
@@ -273,8 +259,6 @@
         footer strong {
             color: #f97316;
         }
-
-        /* ===== RESPONSIVE ===== */
         @media (max-width: 640px) {
             .landing h1 { font-size: 2.2rem; }
             .drawer { width: 100%; right: -100%; }
@@ -286,7 +270,7 @@
 </head>
 <body>
 
-<!-- ===== NAVBAR ===== -->
+<!-- NAVBAR -->
 <nav class="navbar">
     <a href="/" class="logo">
         <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="SparkHub">
@@ -297,10 +281,10 @@
     </button>
 </nav>
 
-<!-- ===== OVERLAY ===== -->
+<!-- OVERLAY -->
 <div class="overlay" id="overlay"></div>
 
-<!-- ===== MENU DÉROULANT (DRAWER) ===== -->
+<!-- DRAWER (MENU) -->
 <div class="drawer" id="drawer">
     <button class="close-btn" id="closeDrawer">✕</button>
     <div class="menu-title">⚡ MENU</div>
@@ -310,27 +294,22 @@
     <a href="/marketplace">🛒 Marketplace</a>
     <a href="/paiements">💳 Paiements</a>
 
-    <!-- ===== BLOC CONDITIONNEL (connecté / non connecté) ===== -->
     {% if current_user.is_authenticated %}
-        <span style="font-weight:600; color:#f97316; padding:12px 0 4px; border-bottom:1px solid #f9fafb;">
-            👋 Bonjour {{ current_user.email }}
-        </span>
-        <a href="/deposer-annonce" class="btn-outline" style="border-color:#f97316; color:#f97316 !important;">➕ Publier une annonce</a>
-        <a href="/mon-compte" class="btn-outline" style="border-color:#0f172a; color:#0f172a !important;">👤 Mon compte</a>
-        <a href="/deconnexion" class="btn-outline danger">🚪 Déconnexion</a>
+        <a href="/mon-compte">👤 Mon compte</a>
+        <a href="/deposer-annonce">➕ Déposer une annonce</a>
+        <a href="/deconnexion" style="color:#dc2626;">🚪 Déconnexion</a>
     {% else %}
-        <a href="/connexion" class="btn-outline" style="border-color:#0f172a; color:#0f172a !important;">🔐 Connexion</a>
-        <a href="/inscription" class="btn-outline" style="border-color:#f97316; color:#f97316 !important;">📝 S'inscrire</a>
+        <a href="/connexion" class="btn-outline">🔐 Connexion</a>
+        <a href="/inscription" class="btn-outline" style="border-color:#0f172a; color:#0f172a !important; margin-top:8px;">📝 S'inscrire</a>
     {% endif %}
 
-    <!-- ===== RECHERCHE DANS LE MENU ===== -->
+    <!-- RECHERCHE DANS LE MENU -->
     <div style="margin-top: 24px; border-top: 1px solid #f3f4f6; padding-top: 20px;">
         <div class="menu-title">🔍 Comparateur</div>
         <form action="/scout" method="get" class="search-form">
             <input type="text" name="query" placeholder="Produit (ex: iPhone, riz...)" required>
             <select name="country">
                 <option value="worldwide">🌍 Monde</option>
-                <!-- 110+ pays classés par ordre alphabétique -->
                 <option value="ZA">🇿🇦 Afrique du Sud</option>
                 <option value="DZ">🇩🇿 Algérie</option>
                 <option value="DE">🇩🇪 Allemagne</option>
@@ -478,7 +457,7 @@
     </div>
 </div>
 
-<!-- ===== LANDING PAGE (ACCUEIL) ===== -->
+<!-- LANDING PAGE (ACCUEIL) -->
 <main class="landing">
     <div class="badge">🌍 +100 pays disponibles</div>
     <h1>Le comparateur de prix <br><span>mondial</span></h1>
@@ -513,13 +492,12 @@
     </div>
 </main>
 
-<!-- ===== FOOTER ===== -->
+<!-- FOOTER -->
 <footer>
     <p>&copy; {{ year }} SparkHub — Développé par <strong>Seïkī</strong></p>
     <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 6px;">🔗 Liens d'affiliation · Paiements sécurisés via Binance P2P</p>
 </footer>
 
-<!-- ===== SCRIPT POUR OUVERTURE/FERMETURE DU MENU ===== -->
 <script>
     const menuToggle = document.getElementById('menuToggle');
     const drawer = document.getElementById('drawer');
