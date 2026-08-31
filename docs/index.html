@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ONCE — Tu parles une fois. Le monde t'écoute.</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="noise"></div>
+  <header class="top">
+    <a class="brand" href="./">
+      <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="2"/>
+        <path d="M10 16c2-6 10-6 12 0M8 16c3-10 13-10 16 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        <circle cx="16" cy="16" r="2.2" fill="currentColor"/>
+      </svg>
+      ONCE
+    </a>
+    <nav>
+      <button type="button" id="langUi" class="ghost" title="Langue de l'interface">FR</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="hero" class="hero">
+      <p class="eyebrow" data-i18n="eyebrow">Le doublage pour tout le monde</p>
+      <h1>
+        <span data-i18n="h1a">Tu parles une fois.</span><br />
+        <em data-i18n="h1b">Ta vidéo parle toutes les langues.</em>
+      </h1>
+      <p class="lead" data-i18n="lead">
+        Tu filmes en français. ONCE réécoute, traduit, et rejoue ta vidéo avec une nouvelle voix + des sous-titres.
+        Pas un compte. Pas une carte. Ça tourne dans ton navigateur.
+      </p>
+
+      <div class="langs" id="targetPicker" role="listbox" aria-label="Langue cible"></div>
+
+      <div class="actions">
+        <button type="button" class="primary" id="btnRecord">
+          <span class="dot"></span>
+          <span data-i18n="record">Parler maintenant</span>
+        </button>
+        <label class="secondary" id="btnUpload">
+          <input type="file" id="file" accept="video/*,audio/*" hidden />
+          <span data-i18n="upload">Déposer une vidéo</span>
+        </label>
+        <button type="button" class="secondary" id="btnType" data-i18n="type">Écrire une phrase</button>
+      </div>
+      <p class="hint" data-i18n="hint">V1 : nouvelle voix + sous-titres. La bouche ne suit pas encore (ça, c’est la V2).</p>
+      <p id="err" class="err" hidden></p>
+    </section>
+
+    <section id="studio" class="studio hidden">
+      <div class="stage">
+        <video id="player" playsinline></video>
+        <div id="emptyStage" class="empty-stage">ONCE</div>
+        <div id="subs" class="subs"></div>
+        <div id="recBadge" class="rec hidden">REC</div>
+        <div id="status" class="status"></div>
+        <button type="button" id="btnStop" class="stop hidden">Stop</button>
+      </div>
+      <aside class="panel">
+        <p class="step" id="stepLabel">—</p>
+        <div class="pair">
+          <div>
+            <h3 data-i18n="original">Original</h3>
+            <p id="srcText" class="script"></p>
+          </div>
+          <div>
+            <h3 id="dstTitle">English</h3>
+            <p id="dstText" class="script"></p>
+          </div>
+        </div>
+        <div class="row">
+          <button type="button" class="primary" id="btnPlayDub" disabled data-i18n="play">Écouter la nouvelle voix</button>
+          <button type="button" class="secondary" id="btnDl" disabled data-i18n="dl">Télécharger .srt</button>
+        </div>
+        <button type="button" class="ghost wide" id="btnReset" data-i18n="again">Recommencer</button>
+      </aside>
+    </section>
+  </main>
+
+  <footer>
+    <p><strong>ONCE</strong> · <span data-i18n="foot">Tu parles une fois. Le monde t’écoute.</span></p>
+  </footer>
+
+  <div id="modal" class="modal hidden">
+    <div class="modal-card">
+      <h2 data-i18n="typeTitle">Écris ce que tu as dit</h2>
+      <textarea id="typeBox" rows="5"></textarea>
+      <div class="row">
+        <button type="button" class="primary" id="btnTypeGo" data-i18n="typeGo">Traduire</button>
+        <button type="button" class="ghost" id="btnTypeCancel" data-i18n="cancel">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./app.js" type="module"></script>
+</body>
+</html>
