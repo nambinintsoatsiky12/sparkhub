@@ -216,7 +216,7 @@ def guard_devices():
         device_type = str(payload.get('device_type', '')).strip()[:30]
         platform = str(payload.get('platform', '')).strip()[:30]
         consent = payload.get('consent') is True
-        if not name or device_type not in {'phone', 'laptop', 'tablet'} or not consent:
+        if not name or device_type not in {'phone', 'laptop', 'tablet', 'watch'} or not consent:
             conn.close()
             return jsonify({"error": "A device name, type, and explicit consent are required."}), 400
         now = datetime.datetime.now(datetime.timezone.utc).isoformat()

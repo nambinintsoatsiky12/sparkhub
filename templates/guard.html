@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/guard.css') }}">
 </head>
-<body>
+<body data-authenticated="{{ 'true' if current_user.is_authenticated else 'false' }}">
     <svg class="svg-defs" aria-hidden="true">
         <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
         <symbol id="i-devices" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.4"/><path d="M10 18.2h4"/></symbol>
@@ -90,12 +90,17 @@
                 <div class="topbar-actions">
                     <label class="search-field"><svg><use href="#i-search"/></svg><input type="search" aria-label="Rechercher un appareil" placeholder="Rechercher"></label>
                     <button class="icon-button notification-button" aria-label="Notifications"><svg><use href="#i-bell"/></svg><span></span></button>
+                    {% if current_user.is_authenticated %}
+                        <a class="account-link account-ready" href="/mon-compte"><svg><use href="#i-shield"/></svg><span>Espace sécurisé</span></a>
+                    {% else %}
+                        <a class="account-link" href="/connexion">Connexion</a>
+                    {% endif %}
                     <button class="add-device-button" id="openAddDevice"><svg><use href="#i-plus"/></svg><span>Ajouter un appareil</span></button>
                 </div>
             </header>
 
             <section class="content-inner">
-                <div class="demo-notice"><svg><use href="#i-info"/></svg><span><strong>Mode aperçu</strong> — cet espace montre le tableau de bord. La localisation ne s’active qu’après votre autorisation explicite.</span><button id="closeNotice" aria-label="Masquer l’information"><svg><use href="#i-close"/></svg></button></div>
+                <div class="demo-notice"><svg><use href="#i-info"/></svg><span><strong>Aperçu interactif</strong> — ce navigateur peut partager sa position après votre autorisation explicite. Les appareils d’exemple ne représentent pas vos autres appareils.</span><button id="closeNotice" aria-label="Masquer l’information"><svg><use href="#i-close"/></svg></button></div>
 
                 <section class="welcome-row">
                     <div>
@@ -148,7 +153,7 @@
                             <div class="river river-one"></div><div class="river river-two"></div>
                             <span class="place place-one">Antananarivo</span><span class="place place-two">Ankorondrano</span><span class="place place-three">Isoraka</span><span class="place place-four">Ambohijatovo</span>
                             <div class="device-pin" id="devicePin"><span class="pin-halo halo-one"></span><span class="pin-halo halo-two"></span><span class="pin-core"><svg><use href="#i-phone"/></svg></span></div>
-                            <div class="location-card"><span class="location-card-dot"></span><div><strong id="mapDeviceName">Pixel 8 Pro</strong><small id="mapLocation">Position actualisée à 09:42</small></div></div>
+                            <div class="location-card"><span class="location-card-dot"></span><div><strong id="mapDeviceName">Cet appareil</strong><small id="mapLocation">Prêt à partager sa position</small></div></div>
                             <div class="map-zoom"><button id="mapZoomIn" aria-label="Agrandir">+</button><button id="mapZoomOut" aria-label="Réduire">−</button></div>
                             <div class="map-attribution">Données cartographiques simulées</div>
                         </div>
@@ -156,11 +161,12 @@
                     </article>
 
                     <aside class="device-details panel" aria-label="Appareil sélectionné">
-                        <header class="panel-header device-title"><div><p class="section-kicker">APPAREIL SÉLECTIONNÉ</p><h3>Pixel 8 Pro</h3></div><button class="icon-button panel-more" aria-label="Options de l'appareil"><svg><use href="#i-more"/></svg></button></header>
+                        <header class="panel-header device-title"><div><p class="section-kicker">APPAREIL SÉLECTIONNÉ</p><h3 id="selectedDeviceTitle">Cet appareil</h3></div><button class="icon-button panel-more" aria-label="Options de l'appareil"><svg><use href="#i-more"/></svg></button></header>
                         <div class="device-visual"><div class="phone-frame"><div class="phone-camera"></div><div class="phone-screen"><span></span><span></span><span></span></div></div><div class="device-orbit orbit-one"></div><div class="device-orbit orbit-two"></div></div>
-                        <div class="device-status-row"><span class="status-online"><i></i> En ligne</span><span>Android 15</span></div>
-                        <dl class="device-facts"><div><dt><svg><use href="#i-battery"/></svg>Batterie</dt><dd><span class="battery-bar"><b></b></span>78%</dd></div><div><dt><svg><use href="#i-signal"/></svg>Réseau</dt><dd>Wi‑Fi sécurisé</dd></div><div><dt><svg><use href="#i-history"/></svg>Dernière activité</dt><dd>Il y a 12 secondes</dd></div></dl>
-                        <div class="device-actions"><button class="action-outline" id="ringButton"><svg><use href="#i-volume"/></svg>Faire sonner</button><button class="action-primary" id="protectButton"><svg><use href="#i-shield"/></svg>Protéger</button></div>
+                        <div class="device-status-row"><span class="status-online" id="currentDeviceState"><i></i> Détecté sur ce navigateur</span><span id="devicePlatform">Analyse de l’appareil</span></div>
+                        <div class="live-location-row"><span><i></i><span id="trackingLabel">Localisation non activée</span></span><button id="enableTrackingButton">Activer</button></div>
+                        <dl class="device-facts"><div><dt><svg><use href="#i-battery"/></svg>Batterie</dt><dd id="deviceBattery"><span class="battery-bar"><b></b></span>Selon l’agent</dd></div><div><dt><svg><use href="#i-signal"/></svg>Réseau</dt><dd id="deviceNetwork">Navigateur sécurisé</dd></div><div><dt><svg><use href="#i-history"/></svg>Dernière activité</dt><dd id="deviceActivity">À l’instant</dd></div></dl>
+                        <div class="device-actions"><button class="action-outline" id="ringButton"><svg><use href="#i-volume"/></svg>Tester la sonnerie</button><button class="action-primary" id="protectButton"><svg><use href="#i-shield"/></svg>Protéger</button></div>
                     </aside>
                 </section>
 
@@ -168,7 +174,7 @@
                     <article class="devices-panel panel">
                         <header class="panel-header"><div><p class="section-kicker">INVENTAIRE</p><h3>Mes appareils</h3></div><button class="view-all" id="viewAllDevices">Voir tous <svg><use href="#i-arrow"/></svg></button></header>
                         <div class="device-list" id="deviceList">
-                            <button class="device-row selected" data-device="Pixel 8 Pro" data-type="phone" data-state="En ligne" data-location="Position actualisée à 09:42" data-coordinate="-18.8792, 47.5079" data-accuracy="précision estimée : 18 m"><span class="device-type phone"><svg><use href="#i-phone"/></svg></span><span class="device-row-main"><strong>Pixel 8 Pro</strong><small>Android · Ce téléphone</small></span><span class="device-row-state online"><i></i>En ligne</span><svg class="row-chevron"><use href="#i-chevron"/></svg></button>
+                            <button class="device-row selected" id="currentDeviceRow" data-device="Cet appareil" data-type="phone" data-state="Détecté" data-location="Prêt à partager sa position" data-coordinate="—" data-accuracy="autorisez la localisation pour commencer"><span class="device-type phone"><svg><use href="#i-phone"/></svg></span><span class="device-row-main"><strong id="currentDeviceName">Cet appareil</strong><small id="currentDeviceMeta">Analyse du navigateur…</small></span><span class="device-row-state online"><i></i>Détecté</span><svg class="row-chevron"><use href="#i-chevron"/></svg></button>
                             <button class="device-row" data-device="MacBook Air" data-type="laptop" data-state="Hors ligne" data-location="Dernière connexion il y a 18 min" data-coordinate="-18.8894, 47.5201" data-accuracy="dernière précision : 42 m"><span class="device-type laptop"><svg><use href="#i-laptop"/></svg></span><span class="device-row-main"><strong>MacBook Air</strong><small>macOS · Bureau</small></span><span class="device-row-state offline"><i></i>Il y a 18 min</span><svg class="row-chevron"><use href="#i-chevron"/></svg></button>
                             <button class="device-row" data-device="Galaxy Watch 7" data-type="watch" data-state="En ligne" data-location="Position actualisée à 09:38" data-coordinate="-18.8730, 47.5155" data-accuracy="précision estimée : 24 m"><span class="device-type watch"><svg><use href="#i-watch"/></svg></span><span class="device-row-main"><strong>Galaxy Watch 7</strong><small>Wear OS · Poignet</small></span><span class="device-row-state online"><i></i>En ligne</span><svg class="row-chevron"><use href="#i-chevron"/></svg></button>
                         </div>
@@ -222,6 +228,145 @@
         const lostModal = document.getElementById('lostModal');
         const toast = document.getElementById('toast');
         let toastTimer;
+        let locationWatchId = null;
+        let detectedDevice = { name: 'Cet appareil', type: 'phone', platform: 'Navigateur sécurisé' };
+        let storedDeviceId = window.localStorage.getItem('sparkhubGuardDeviceId');
+        const isAuthenticated = document.body.dataset.authenticated === 'true';
+
+        function setText(id, value) {
+            const element = document.getElementById(id);
+            if (element) element.textContent = value;
+        }
+
+        async function detectThisDevice() {
+            const ua = navigator.userAgent || '';
+            let platform = navigator.platform || 'Navigateur';
+            let model = '';
+            let mobile = /Android|iPhone|iPad|Mobile/i.test(ua);
+            try {
+                if (navigator.userAgentData) {
+                    const details = await navigator.userAgentData.getHighEntropyValues(['model', 'platform', 'platformVersion', 'mobile']);
+                    model = (details.model || '').trim();
+                    platform = details.platform || platform;
+                    mobile = details.mobile || mobile;
+                }
+            } catch (_) { /* Some browsers deliberately keep model information private. */ }
+
+            let type = mobile ? 'phone' : 'laptop';
+            let name = model;
+            if (!name && /iPad/i.test(ua)) { name = 'iPad'; type = 'tablet'; }
+            else if (!name && /iPhone/i.test(ua)) { name = 'iPhone'; }
+            else if (!name && /Android/i.test(ua)) { name = 'Téléphone Android'; }
+            else if (!name && /Macintosh|Mac OS X/i.test(ua)) { name = 'Mac'; }
+            else if (!name && /Windows/i.test(ua)) { name = 'PC Windows'; }
+            else if (!name && /Linux/i.test(ua)) { name = 'Ordinateur Linux'; }
+            else if (!name) { name = 'Cet appareil'; }
+
+            detectedDevice = { name: name.slice(0, 32), type, platform: `${platform} · Ce navigateur` };
+            const currentRow = document.getElementById('currentDeviceRow');
+            currentRow.dataset.device = detectedDevice.name;
+            currentRow.dataset.type = type === 'tablet' ? 'phone' : type;
+            currentRow.dataset.location = 'Prêt à partager sa position';
+            setText('currentDeviceName', detectedDevice.name);
+            setText('currentDeviceMeta', detectedDevice.platform);
+            setText('selectedDeviceTitle', detectedDevice.name);
+            setText('mapDeviceName', detectedDevice.name);
+            setText('devicePlatform', platform);
+            document.querySelector('#currentDeviceRow .device-type use').setAttribute('href', `#i-${type === 'tablet' ? 'phone' : type}`);
+            document.querySelector('.pin-core use').setAttribute('href', `#i-${type === 'tablet' ? 'phone' : type}`);
+            document.getElementById('newDeviceName').placeholder = detectedDevice.name;
+            document.getElementById('newDeviceType').value = type === 'tablet' ? 'phone' : type;
+
+            if (navigator.getBattery) {
+                try {
+                    const battery = await navigator.getBattery();
+                    const updateBattery = () => {
+                        const percentage = Math.round(battery.level * 100);
+                        const target = document.getElementById('deviceBattery');
+                        target.innerHTML = `<span class="battery-bar"><b style="width:${percentage}%"></b></span>${percentage}%${battery.charging ? ' · charge' : ''}`;
+                    };
+                    updateBattery();
+                    battery.addEventListener('levelchange', updateBattery);
+                    battery.addEventListener('chargingchange', updateBattery);
+                } catch (_) { /* Battery data is optional and remains unavailable in many browsers. */ }
+            }
+            const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            if (connection && connection.effectiveType) setText('deviceNetwork', `Connexion ${connection.effectiveType.toUpperCase()}`);
+        }
+
+        function updatePosition(position) {
+            const { latitude, longitude, accuracy } = position.coords;
+            const coordinate = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+            setText('coordinateText', coordinate);
+            setText('accuracyText', `précision estimée : ${Math.round(accuracy)} m`);
+            setText('mapLocation', 'Position partagée par cet appareil');
+            setText('syncTime', 'à l’instant');
+            setText('deviceActivity', 'À l’instant');
+            setText('trackingLabel', 'Localisation active dans ce navigateur');
+            document.getElementById('devicePin').classList.add('repositioned');
+            document.getElementById('enableTrackingButton').textContent = 'Active';
+            document.getElementById('enableTrackingButton').classList.add('enabled');
+            const currentRow = document.getElementById('currentDeviceRow');
+            currentRow.dataset.coordinate = coordinate;
+            currentRow.dataset.accuracy = `précision estimée : ${Math.round(accuracy)} m`;
+            currentRow.dataset.location = 'Position partagée à l’instant';
+            window.localStorage.setItem('sparkhubGuardLastPosition', JSON.stringify({ latitude, longitude, accuracy, recordedAt: Date.now() }));
+            persistPosition(position.coords);
+        }
+
+        async function registerCurrentDevice() {
+            if (!isAuthenticated) return null;
+            if (storedDeviceId) return Number(storedDeviceId);
+            const response = await fetch('/api/guard/devices', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: detectedDevice.name, device_type: detectedDevice.type, platform: detectedDevice.platform, consent: true })
+            });
+            if (!response.ok) throw new Error('device-registration-failed');
+            const device = await response.json();
+            storedDeviceId = device.id;
+            window.localStorage.setItem('sparkhubGuardDeviceId', String(device.id));
+            return device.id;
+        }
+
+        async function persistPosition(coords) {
+            if (!isAuthenticated) return;
+            try {
+                let deviceId = await registerCurrentDevice();
+                let response = await fetch('/api/guard/position', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ device_id: deviceId, latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy })
+                });
+                if (response.status === 404) {
+                    window.localStorage.removeItem('sparkhubGuardDeviceId');
+                    storedDeviceId = null;
+                    deviceId = await registerCurrentDevice();
+                    response = await fetch('/api/guard/position', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ device_id: deviceId, latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy }) });
+                }
+                if (!response.ok) throw new Error('position-save-failed');
+                showToast('Position chiffrée enregistrée dans votre espace sécurisé.');
+            } catch (_) {
+                showToast('Position visible dans ce navigateur, mais non enregistrée sur le compte.', 'warning');
+            }
+        }
+
+        function startLocationSharing(announce = true) {
+            if (!navigator.geolocation) { showToast('La géolocalisation n’est pas prise en charge par ce navigateur.', 'warning'); return; }
+            const button = document.getElementById('locateButton');
+            button.classList.add('is-loading');
+            button.innerHTML = '<svg><use href="#i-locate"/></svg>Recherche en cours';
+            if (locationWatchId !== null) navigator.geolocation.clearWatch(locationWatchId);
+            locationWatchId = navigator.geolocation.watchPosition(position => {
+                updatePosition(position);
+                button.classList.remove('is-loading');
+                button.innerHTML = '<svg><use href="#i-locate"/></svg>Actualiser la position';
+                if (announce) showToast(isAuthenticated ? 'Suivi démarré : vos positions seront enregistrées dans cet espace.' : 'Suivi démarré dans ce navigateur. Connectez-vous pour conserver vos positions.');
+            }, () => {
+                button.classList.remove('is-loading');
+                button.innerHTML = '<svg><use href="#i-locate"/></svg>Actualiser la position';
+                setText('trackingLabel', 'Autorisation de localisation requise');
+                showToast('Autorisation de localisation non accordée. Aucun emplacement n’a été lu.', 'warning');
+            }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 10000 });
+        }
 
         function showToast(message, kind = 'success') {
             document.getElementById('toastText').textContent = message;
@@ -262,7 +407,11 @@
 
         document.getElementById('openSidebar').addEventListener('click', () => sidebar.classList.add('open'));
         document.getElementById('closeSidebar').addEventListener('click', () => sidebar.classList.remove('open'));
-        document.getElementById('openAddDevice').addEventListener('click', () => openModal('add'));
+        document.getElementById('openAddDevice').addEventListener('click', () => {
+            const nameField = document.getElementById('newDeviceName');
+            if (!nameField.value) nameField.value = detectedDevice.name;
+            openModal('add');
+        });
         document.querySelectorAll('[data-close-modal]').forEach(button => button.addEventListener('click', closeModal));
         modalBackdrop.addEventListener('click', event => { if (event.target === modalBackdrop) closeModal(); });
         document.addEventListener('keydown', event => { if (event.key === 'Escape') { closeModal(); sidebar.classList.remove('open'); } });
@@ -270,8 +419,20 @@
         document.getElementById('closeToast').addEventListener('click', () => toast.classList.remove('show'));
         document.querySelectorAll('.device-row').forEach(row => row.addEventListener('click', () => selectDevice(row)));
 
-        document.getElementById('ringButton').addEventListener('click', () => showToast('Signal sonore envoyé à l’appareil sélectionné.'));
+        document.getElementById('ringButton').addEventListener('click', () => {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                const audio = new AudioContext();
+                const oscillator = audio.createOscillator();
+                const gain = audio.createGain();
+                oscillator.connect(gain); gain.connect(audio.destination);
+                oscillator.frequency.value = 880; gain.gain.setValueAtTime(.035, audio.currentTime);
+                oscillator.start(); oscillator.stop(audio.currentTime + .22);
+            } catch (_) { /* Audio is optional in the preview. */ }
+            showToast('Sonnerie de test jouée sur cet appareil. Un agent mobile est nécessaire pour la sonnerie à distance.');
+        });
         document.getElementById('protectButton').addEventListener('click', () => showToast('Les paramètres de protection sont déjà actifs.'));
+        document.getElementById('enableTrackingButton').addEventListener('click', () => startLocationSharing());
         document.getElementById('lostModeButton').addEventListener('click', () => openModal('lost'));
         document.getElementById('confirmLost').addEventListener('click', () => { closeModal(); showToast('Mode perdu préparé. Cette démonstration ne verrouille aucun appareil.', 'warning'); });
         document.getElementById('safeZonesButton').addEventListener('click', () => showToast('2 zones de confiance sont configurées dans cet aperçu.'));
@@ -282,32 +443,21 @@
         document.getElementById('mapZoomIn').addEventListener('click', () => document.getElementById('mapCanvas').classList.add('zoomed'));
         document.getElementById('mapZoomOut').addEventListener('click', () => document.getElementById('mapCanvas').classList.remove('zoomed'));
 
-        document.getElementById('locateButton').addEventListener('click', () => {
-            const button = document.getElementById('locateButton');
-            if (!navigator.geolocation) { showToast('La géolocalisation n’est pas prise en charge par ce navigateur.', 'warning'); return; }
-            button.classList.add('is-loading');
-            button.innerHTML = '<svg><use href="#i-locate"/></svg>Recherche en cours';
-            navigator.geolocation.getCurrentPosition(position => {
-                const { latitude, longitude, accuracy } = position.coords;
-                document.getElementById('coordinateText').textContent = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-                document.getElementById('accuracyText').textContent = `précision estimée : ${Math.round(accuracy)} m`;
-                document.getElementById('mapLocation').textContent = 'Position obtenue avec votre autorisation';
-                document.getElementById('syncTime').textContent = 'à l’instant';
-                document.getElementById('devicePin').classList.add('repositioned');
-                showToast('Position mise à jour uniquement dans cet aperçu.');
-                button.classList.remove('is-loading'); button.innerHTML = '<svg><use href="#i-locate"/></svg>Actualiser la position';
-            }, () => {
-                showToast('Autorisation de localisation non accordée. Aucun emplacement n’a été lu.', 'warning');
-                button.classList.remove('is-loading'); button.innerHTML = '<svg><use href="#i-locate"/></svg>Actualiser la position';
-            }, { enableHighAccuracy: true, timeout: 9000, maximumAge: 0 });
-        });
+        document.getElementById('locateButton').addEventListener('click', () => startLocationSharing());
 
-        document.getElementById('addDeviceForm').addEventListener('submit', event => {
+        document.getElementById('addDeviceForm').addEventListener('submit', async event => {
             event.preventDefault();
             const name = document.getElementById('newDeviceName').value.trim();
             const type = document.getElementById('newDeviceType').value;
             if (!name || !document.getElementById('deviceConsent').checked) return;
             const label = type === 'laptop' ? 'Ordinateur' : type === 'watch' ? 'Montre connectée' : 'Téléphone';
+            let savedToAccount = false;
+            if (isAuthenticated) {
+                try {
+                    const response = await fetch('/api/guard/devices', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, device_type: type, platform: 'Ajouté depuis SparkHub Guard', consent: true }) });
+                    savedToAccount = response.ok;
+                } catch (_) { savedToAccount = false; }
+            }
             const row = document.createElement('button');
             row.type = 'button'; row.className = 'device-row';
             row.dataset.device = name; row.dataset.type = type; row.dataset.state = 'En attente';
@@ -316,8 +466,18 @@
             row.addEventListener('click', () => selectDevice(row));
             document.getElementById('deviceList').appendChild(row);
             closeModal(); event.target.reset();
-            showToast(`${name} a été ajouté à l’aperçu.`);
+            showToast(savedToAccount ? `${name} est enregistré dans votre espace sécurisé.` : `${name} a été ajouté à l’aperçu. Connectez-vous pour le sauvegarder.`);
         });
+
+        (async () => {
+            const formatter = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+            setText('dateLine', formatter.format(new Date()).toUpperCase());
+            await detectThisDevice();
+            try {
+                const permission = await navigator.permissions?.query({ name: 'geolocation' });
+                if (permission?.state === 'granted') startLocationSharing(false);
+            } catch (_) { /* Permission state is not exposed by every browser. */ }
+        })();
     </script>
 </body>
 </html>
