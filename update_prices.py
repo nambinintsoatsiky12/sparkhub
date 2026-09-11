@@ -1,15 +1,14 @@
 import requests
 import datetime
 import time
+import os
 from bs4 import BeautifulSoup
 import re
 
-# 🔑 TA CLÉ SCRAPERAPI
-SCRAPERAPI_KEY = "f554d91dca9a43b2b06744478422a674"
-
-# Webhook vers PythonAnywhere
-WEBHOOK_URL = "https://sparkhub001.pythonanywhere.com/webhook-update"
-SECRET_TOKEN = "SPARKHUB_SUPER_SECRET_2026"
+# Configure these environment variables before running this script.
+SCRAPERAPI_KEY = os.environ.get("SCRAPERAPI_KEY", "")
+WEBHOOK_URL = os.environ.get("SPARKHUB_WEBHOOK_URL", "https://sparkhub001.pythonanywhere.com/webhook-update")
+SECRET_TOKEN = os.environ.get("SPARKHUB_WEBHOOK_TOKEN", "")
 
 def scrape_amazon(product, country="US"):
     """Scraper Amazon via ScraperAPI"""
@@ -52,7 +51,10 @@ def scrape_amazon(product, country="US"):
         return []
 
 def scrape_jumia(product):
-    """Scraper Jumia Madagascar via ScraperAPI"""
+    """Scraper Jumia Madagascar via ScraperAPI."""
+    if not SCRAPERAPI_KEY:
+        print("SCRAPERAPI_KEY is not configured; Jumia lookup skipped.")
+        return []
     try:
         url = f"https://www.jumia.mg/catalog/?q={product.replace(' ', '+')}"
         scraperapi_url = f"https://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={url}"
@@ -79,7 +81,10 @@ def scrape_jumia(product):
         return []
 
 def scrape_and_send():
-    print(f"🔁 Mise à jour auto - {datetime.datetime.now()}")
+    if not SECRET_TOKEN:
+        raise RuntimeError("SPARKHUB_WEBHOOK_TOKEN must be configured before sending updates.")
+
+    print(f"Mise à jour auto - {datetime.datetime.now()}")
 
     products = ["airpods", "iphone", "samsung", "ordinateur", "ps5", "montre"]
     all_results = []

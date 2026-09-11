@@ -1,18 +1,77 @@
 from flask import Flask, render_template, request, jsonify, redirect, flash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 import datetime
+import os
 import requests
 from bs4 import BeautifulSoup
 import re
 import sqlite3
 import bcrypt
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.environ.get("SPARKHUB_DB_PATH", os.path.join(BASE_DIR, "prices.db"))
+
 app = Flask(__name__)
-app.secret_key = "SPARKHUB_SECRET_KEY_CHANGE_ME"
+app.secret_key = os.environ.get("SPARKHUB_SECRET_KEY", "sparkhub-local-development-key")
 
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'connexion'
+
+
+def init_db():
+    """Create the local development schema without overwriting existing data."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.executescript("""
+        CREATE TABLE IF NOT EXISTS prices (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            keyword TEXT, title TEXT, price TEXT, source TEXT, updated_at TEXT
+        );
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE NOT NULL, password TEXT NOT NULL, created_at TEXT
+        );
+        CREATE TABLE IF NOT EXISTS annonces (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER, titre TEXT, description TEXT, prix TEXT, contact TEXT,
+            image_url TEXT, categorie TEXT, date TEXT
+        );
+        CREATE TABLE IF NOT EXISTS commentaires (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            annonce_id INTEGER, user_id INTEGER, commentaire TEXT, date TEXT
+        );
+        CREATE TABLE IF NOT EXISTS guard_devices (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            device_type TEXT NOT NULL,
+            platform TEXT,
+            status TEXT NOT NULL DEFAULT 'active',
+            battery INTEGER,
+            last_seen TEXT,
+            latitude REAL,
+            longitude REAL,
+            accuracy REAL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS guard_positions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            device_id INTEGER NOT NULL,
+            latitude REAL NOT NULL,
+            longitude REAL NOT NULL,
+            accuracy REAL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(device_id) REFERENCES guard_devices(id)
+        );
+    """)
+    conn.commit()
+    conn.close()
+
+
+init_db()
+
 
 class User(UserMixin):
     def __init__(self, id, email):
@@ -21,7 +80,7 @@ class User(UserMixin):
 
 @login_manager.user_loader
 def load_user(user_id):
-    conn = sqlite3.connect('/home/Sparkhub001/sparkhub/prices.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("SELECT id, email FROM users WHERE id = ?", (user_id,))
     row = c.fetchone()
@@ -30,8 +89,7 @@ def load_user(user_id):
         return User(row[0], row[1])
     return None
 
-DB_PATH = '/home/Sparkhub001/sparkhub/prices.db'
-SCRAPERAPI_KEY = "f554d91dca9a43b2b06744478422a674"
+SCRAPERAPI_KEY = os.environ.get("SCRAPERAPI_KEY", "")
 
 def get_prices(key):
     conn = sqlite3.connect(DB_PATH)
@@ -139,8 +197,92 @@ def create_user(email, hashed_password):
         return False
 
 @app.route('/')
+@app.route('/guard')
 def home():
-    return render_template('index.html', year=datetime.datetime.now().year)
+    return render_template('guard.html', year=datetime.datetime.now().year)
+
+
+@app.route('/api/guard/devices', methods=['GET', 'POST'])
+@login_required
+def guard_devices():
+    """Devices are private to the authenticated account; no SIM or Google data is read."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    if request.method == 'POST':
+        payload = request.get_json(silent=True) or {}
+        name = str(payload.get('name', '')).strip()[:80]
+        device_type = str(payload.get('device_type', '')).strip()[:30]
+        platform = str(payload.get('platform', '')).strip()[:30]
+        consent = payload.get('consent') is True
+        if not name or device_type not in {'phone', 'laptop', 'tablet'} or not consent:
+            conn.close()
+            return jsonify({"error": "A device name, type, and explicit consent are required."}), 400
+        now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        cursor.execute(
+            """INSERT INTO guard_devices
+               (user_id, name, device_type, platform, created_at, last_seen)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (current_user.id, name, device_type, platform, now, now),
+        )
+        conn.commit()
+        device_id = cursor.lastrowid
+        conn.close()
+        return jsonify({"id": device_id, "name": name, "device_type": device_type}), 201
+
+    cursor.execute(
+        """SELECT id, name, device_type, platform, status, battery, last_seen,
+                  latitude, longitude, accuracy
+           FROM guard_devices WHERE user_id = ? ORDER BY id DESC""",
+        (current_user.id,),
+    )
+    devices = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return jsonify({"devices": devices})
+
+
+@app.route('/api/guard/position', methods=['POST'])
+@login_required
+def save_guard_position():
+    """Store a position supplied by a registered, consented device belonging to its owner."""
+    payload = request.get_json(silent=True) or {}
+    try:
+        device_id = int(payload.get('device_id'))
+        latitude = float(payload.get('latitude'))
+        longitude = float(payload.get('longitude'))
+        accuracy = float(payload.get('accuracy', 0))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid location payload."}), 400
+
+    if not (-90 <= latitude <= 90 and -180 <= longitude <= 180 and 0 <= accuracy <= 100000):
+        return jsonify({"error": "Location values are out of range."}), 400
+
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id FROM guard_devices WHERE id = ? AND user_id = ?",
+        (device_id, current_user.id),
+    )
+    if not cursor.fetchone():
+        conn.close()
+        return jsonify({"error": "Device not found."}), 404
+
+    cursor.execute(
+        """INSERT INTO guard_positions (device_id, latitude, longitude, accuracy, created_at)
+           VALUES (?, ?, ?, ?, ?)""",
+        (device_id, latitude, longitude, accuracy, now),
+    )
+    cursor.execute(
+        """UPDATE guard_devices SET latitude = ?, longitude = ?, accuracy = ?, last_seen = ?
+           WHERE id = ?""",
+        (latitude, longitude, accuracy, now, device_id),
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({"status": "saved", "recorded_at": now})
+
 
 @app.route('/scout')
 def scout():
@@ -367,12 +509,12 @@ def test_api():
     except Exception as e:
         return f"Erreur : {str(e)}"
 
-SECRET_TOKEN = "SPARKHUB_SUPER_SECRET_2026"
+SECRET_TOKEN = os.environ.get("SPARKHUB_WEBHOOK_TOKEN", "")
 
 @app.route('/webhook-update', methods=['POST'])
 def webhook_update():
     token = request.headers.get('X-Update-Token')
-    if token != SECRET_TOKEN:
+    if not SECRET_TOKEN or token != SECRET_TOKEN:
         return jsonify({"status": "error", "message": "Non autorisé"}), 403
     data = request.get_json()
     if not data or 'updates' not in data:
@@ -386,4 +528,8 @@ def webhook_update():
     return jsonify({"status": "success", "message": "Mise à jour reçue"})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", "5000")),
+        debug=os.environ.get("FLASK_DEBUG", "").lower() == "true",
+    )
