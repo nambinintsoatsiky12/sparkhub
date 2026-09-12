@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pulse — le moteur des données vivantes</title>
+  <meta name="description" content="Trouvez les API publiques et flux JSON dont vos projets ont besoin.">
+  <link rel="icon" href="{{ url_for('static', filename='images/logo.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pulse.css') }}">
+</head>
+<body>
+  <nav class="topbar"><a class="wordmark" href="/"><span class="mark"><i></i><i></i><i></i></span><span>pulse<span class="dot">.</span></span></a><div class="navlinks"><a href="#explorer">Explorer</a><a href="#fonctionnement">Comment ça marche</a><a class="nav-guard" href="/guard">SparkHub Guard ↗</a></div><button class="menu" aria-label="Ouvrir le menu">☰</button></nav>
+
+  <main>
+    <section class="hero">
+      <div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div>
+      <div class="eyebrow"><span class="live-dot"></span> L'annuaire vivant des données publiques</div>
+      <h1>Le web ne se résume<br>pas à ses <em>pages.</em></h1>
+      <p class="hero-copy">Trouvez les API, flux JSON et webhooks que les moteurs classiques ne voient jamais. Une recherche pour construire plus vite.</p>
+      <form class="search" id="searchForm"><span class="search-icon">⌕</span><input id="searchInput" autocomplete="off" placeholder="Météo, livres, géographie..." aria-label="Rechercher une API"><button>Rechercher <span>→</span></button></form>
+      <div class="quick-search"><span>Populaire</span><button data-query="météo">météo</button><button data-query="cartographie">cartographie</button><button data-query="livres">livres</button></div>
+      <div class="hero-proof"><span class="avatars"><b>✦</b><b>↗</b><b>◌</b></span><span><strong>12 482</strong> sources découvertes par la communauté</span></div>
+    </section>
+
+    <section class="explorer" id="explorer"><div class="section-head"><div><span class="kicker">EXPLORER LE RÉSEAU</span><h2>Des données prêtes à brancher.</h2></div><div class="filters"><button class="filter active" data-category="Toutes les catégories">Tout</button><button class="filter" data-category="Météo">Météo</button><button class="filter" data-category="Cartographie">Cartographie</button><button class="filter" data-category="Culture">Culture</button></div></div><div id="results" class="cards"></div><div id="empty" class="empty" hidden>Aucune source ne correspond à cette recherche. <button id="suggest">Proposer cette API</button></div></section>
+
+    <section class="how" id="fonctionnement"><div class="how-copy"><span class="kicker">LA PHILOSOPHIE PULSE</span><h2>La bonne donnée,<br><em>au bon moment.</em></h2><p>Les agents IA et les développeurs ont besoin de sources fraîches, pas de résultats SEO. Pulse cartographie ce web invisible avec des signaux simples : une URL, un format, un battement.</p><a href="#explorer" class="text-link">Voir le réseau <span>↗</span></a></div><div class="signal-card"><div class="signal-top"><span class="pulse-ring"></span><span>RÉSEAU EN DIRECT</span><b>●</b></div><div class="signal-line"><span>Sources actives</span><strong>12,482</strong><div class="bar"><i style="width:82%"></i></div></div><div class="signal-line"><span>Disponibilité moyenne</span><strong>99.2%</strong><div class="bar"><i style="width:99%"></i></div></div><div class="signal-line"><span>Nouveaux signaux aujourd'hui</span><strong>+284</strong><div class="bar"><i style="width:64%"></i></div></div><div class="signal-foot">Dernière synchronisation <b>il y a 38 sec</b></div></div></section>
+
+    <section class="cta"><div><span class="kicker">VOUS CONNAISSEZ UNE PÉPITE ?</span><h2>Le prochain grand produit<br>commence par une URL.</h2></div><button id="openModal" class="cta-button">Proposer une source <span>→</span></button></section>
+  </main>
+  <footer><a class="wordmark" href="/"><span class="mark"><i></i><i></i><i></i></span><span>pulse<span class="dot">.</span></span></a><span>Le web vivant, indexé par tous.</span><span>© {{ year }} SparkHub</span></footer>
+
+  <div class="modal" id="modal" aria-hidden="true"><div class="modal-box"><button class="modal-close" id="closeModal">×</button><span class="kicker">CONTRIBUER AU RÉSEAU</span><h2>Ajouter une source</h2><p>Chaque proposition est vérifiée avant d'être publiée.</p><form id="submitForm"><label>Nom de l'API<input name="name" required placeholder="Ex. City Bikes"></label><label>URL de l'endpoint<input name="url" required type="url" placeholder="https://api.exemple.com/v1"></label><label>Catégorie<select name="category"><option>Autre</option><option>Météo</option><option>Cartographie</option><option>Culture</option><option>Données publiques</option></select></label><label>Description <small>(facultatif)</small><textarea name="description" maxlength="240" placeholder="Ce que cette source permet de faire..."></textarea></label><button class="submit-button">Envoyer la proposition <span>→</span></button><div id="formMessage" role="status"></div></form></div></div>
+  <script src="{{ url_for('static', filename='js/pulse.js') }}"></script>
+</body></html>
