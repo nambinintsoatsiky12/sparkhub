@@ -11,12 +11,33 @@ import bcrypt
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.environ.get("SPARKHUB_DB_PATH", os.path.join(BASE_DIR, "prices.db"))
 
+
+def load_env():
+    """Charge les variables du fichier .env local (sans écraser l'environnement)."""
+    env_path = os.path.join(BASE_DIR, ".env")
+    if not os.path.exists(env_path):
+        return
+    with open(env_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+
+
+load_env()
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("SPARKHUB_SECRET_KEY", "sparkhub-local-development-key")
 
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'connexion'
+login_manager.remember_cookie_duration = datetime.timedelta(days=365)
 
 
 def init_db():
@@ -284,97 +305,129 @@ def save_guard_position():
     return jsonify({"status": "saved", "recorded_at": now})
 
 
+def fetch_scout_results(query, country):
+    """Scrape les prix (cache SQLite puis ScraperAPI). Retourne (results, updated_at)."""
+    results = []
+    updated_at = "Jamais mis à jour"
+
+    if not query:
+        return results, updated_at
+
+    cache_key = f"{query}_{country}"
+    db_results = get_prices(cache_key)
+    if db_results:
+        # Le cache ne contient pas de lien d'achat : on le régénère.
+        results = [{**r, 'affiliate_link': '#'} for r in db_results]
+        updated_at = db_results[0].get('updated_at', 'Cache')
+        return results, updated_at
+
+    if not SCRAPERAPI_KEY:
+        results = [{'title': 'Clé ScraperAPI non configurée',
+                    'price': 'Ajoute SCRAPERAPI_KEY',
+                    'source': 'Info',
+                    'affiliate_link': '#'}]
+        updated_at = "Configuration requise"
+        return results, updated_at
+
+    # Code pays normalisé pour ScraperAPI (ISO-2 minuscules)
+    country_code = {"US": "us", "FR": "fr", "GB": "uk", "DE": "de",
+                    "JP": "jp", "MG": "mg", "worldwide": "us"}.get(country, "us")
+
+    try:
+        if country == "FR":
+            search_url = f"https://www.amazon.fr/s?k={query.replace(' ', '+')}"
+        elif country == "GB":
+            search_url = f"https://www.amazon.co.uk/s?k={query.replace(' ', '+')}"
+        elif country == "DE":
+            search_url = f"https://www.amazon.de/s?k={query.replace(' ', '+')}"
+        elif country == "JP":
+            search_url = f"https://www.amazon.co.jp/s?k={query.replace(' ', '+')}"
+        elif country == "MG":
+            search_url = f"https://www.jumia.mg/catalog/?q={query.replace(' ', '+')}"
+        else:
+            search_url = f"https://www.amazon.com/s?k={query.replace(' ', '+')}"
+
+        scraperapi_url = f"https://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={search_url}&country_code={country_code}"
+        response = requests.get(scraperapi_url, timeout=30, proxies={"http": None, "https": None})
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        products = soup.find_all('div', {'data-component-type': 's-search-result'})
+        if not products:
+            products = soup.find_all('article', class_='prd')
+
+        count = 0
+        for product in products:
+            if count >= 10:
+                break
+            title_tag = product.find('h2')
+            if not title_tag:
+                title_tag = product.find('h3', class_='name')
+            title = title_tag.text.strip() if title_tag else "Produit"
+            price_tag = product.find('span', class_='a-price-whole')
+            if not price_tag:
+                price_tag = product.find('div', class_='prc')
+            price = price_tag.text.strip() if price_tag else "N/A"
+            currency = "Ar" if country == "MG" else "USD" if country == "US" else "EUR" if country in ["FR", "DE"] else "USD"
+            link_tag = product.find('a', class_='a-link-normal')
+            if not link_tag:
+                link_tag = product.find('a', class_='core')
+            affiliate_link = "#"
+            if link_tag and link_tag.get('href'):
+                if not link_tag['href'].startswith('http'):
+                    affiliate_link = "https://www.amazon.com" + link_tag['href']
+                else:
+                    affiliate_link = link_tag['href']
+            if price != "N/A" and title != "Produit":
+                price_clean = re.sub(r'[^\d\s,.]', '', price).strip()
+                price_display = f"{price_clean} {currency}" if price_clean else price
+                save_price(cache_key, title, price_display, f"ScraperAPI ({country})")
+                results.append({'title': title, 'price': price_display, 'source': f"ScraperAPI ({country})", 'affiliate_link': affiliate_link})
+                count += 1
+
+        if not results:
+            jumia_url = f"https://www.jumia.mg/catalog/?q={query.replace(' ', '+')}"
+            scraperapi_url_jumia = f"https://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={jumia_url}"
+            response_jumia = requests.get(scraperapi_url_jumia, timeout=30, proxies={"http": None, "https": None})
+            soup_jumia = BeautifulSoup(response_jumia.text, 'html.parser')
+            products_jumia = soup_jumia.find_all('article', class_='prd')
+            for product in products_jumia[:10]:
+                title_tag = product.find('h3', class_='name')
+                price_tag = product.find('div', class_='prc')
+                if title_tag and price_tag:
+                    title = title_tag.text.strip()
+                    price = price_tag.text.strip()
+                    price_display = f"{price} Ar"
+                    save_price(cache_key, title, price_display, "ScraperAPI (Jumia)")
+                    results.append({'title': title, 'price': price_display, 'source': "ScraperAPI (Jumia)", 'affiliate_link': "#"})
+
+        updated_at = f"Aujourd'hui ({country})"
+
+    except Exception as e:
+        msg = str(e) or ""
+        if "SSL" in msg or "Max retries" in msg or "Connection" in msg or "TLS" in msg or "timed out" in msg or "ConnectTimeout" in msg:
+            friendly = "Impossible de joindre l'API (réseau)"
+        else:
+            friendly = f"Erreur: {msg[:60]}"
+        results = [{'title': friendly, 'price': 'Réessayez dans un instant', 'source': 'Info', 'affiliate_link': '#'}]
+        updated_at = "API indisponible"
+
+    return results, updated_at
+
+
+@app.route('/api/scout')
+def api_scout():
+    """Version JSON du comparateur, utilisée par le tableau de bord Guard."""
+    query = request.args.get('query', '').strip().lower()
+    country = request.args.get('country', 'worldwide')
+    results, updated_at = fetch_scout_results(query, country)
+    return jsonify({"query": query, "country": country, "updated_at": updated_at, "results": results})
+
+
 @app.route('/scout')
 def scout():
     query = request.args.get('query', '').strip().lower()
     country = request.args.get('country', 'worldwide')
-    results = []
-    updated_at = "Jamais mis à jour"
-
-    if query:
-        cache_key = f"{query}_{country}"
-        db_results = get_prices(cache_key)
-
-        if db_results:
-            results = db_results
-            updated_at = db_results[0].get('updated_at', 'Cache')
-        else:
-            try:
-                if country == "worldwide" or country == "US":
-                    search_url = f"https://www.amazon.com/s?k={query.replace(' ', '+')}"
-                elif country == "FR":
-                    search_url = f"https://www.amazon.fr/s?k={query.replace(' ', '+')}"
-                elif country == "GB":
-                    search_url = f"https://www.amazon.co.uk/s?k={query.replace(' ', '+')}"
-                elif country == "DE":
-                    search_url = f"https://www.amazon.de/s?k={query.replace(' ', '+')}"
-                elif country == "JP":
-                    search_url = f"https://www.amazon.co.jp/s?k={query.replace(' ', '+')}"
-                elif country == "MG":
-                    search_url = f"https://www.jumia.mg/catalog/?q={query.replace(' ', '+')}"
-                else:
-                    search_url = f"https://www.amazon.com/s?k={query.replace(' ', '+')}"
-
-                # ✅ Appel direct à ScraperAPI (correction)
-                scraperapi_url = f"https://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={search_url}&country_code={country}&render=true"
-                response = requests.get(scraperapi_url, timeout=30, proxies={"http": None, "https": None})
-                soup = BeautifulSoup(response.text, 'html.parser')
-
-                products = soup.find_all('div', {'data-component-type': 's-search-result'})
-                if not products:
-                    products = soup.find_all('article', class_='prd')
-
-                count = 0
-                for product in products:
-                    if count >= 10:
-                        break
-                    title_tag = product.find('h2')
-                    if not title_tag:
-                        title_tag = product.find('h3', class_='name')
-                    title = title_tag.text.strip() if title_tag else "Produit"
-                    price_tag = product.find('span', class_='a-price-whole')
-                    if not price_tag:
-                        price_tag = product.find('div', class_='prc')
-                    price = price_tag.text.strip() if price_tag else "N/A"
-                    currency = "Ar" if country == "MG" else "USD" if country == "US" else "EUR" if country in ["FR", "DE"] else "USD"
-                    link_tag = product.find('a', class_='a-link-normal')
-                    if not link_tag:
-                        link_tag = product.find('a', class_='core')
-                    affiliate_link = "#"
-                    if link_tag and link_tag.get('href'):
-                        if not link_tag['href'].startswith('http'):
-                            affiliate_link = "https://www.amazon.com" + link_tag['href']
-                        else:
-                            affiliate_link = link_tag['href']
-                    if price != "N/A" and title != "Produit":
-                        price_clean = re.sub(r'[^\d\s,.]', '', price).strip()
-                        price_display = f"{price_clean} {currency}" if price_clean else price
-                        save_price(cache_key, title, price_display, f"ScraperAPI ({country})")
-                        results.append({'title': title, 'price': price_display, 'source': f"ScraperAPI ({country})", 'affiliate_link': affiliate_link})
-                        count += 1
-
-                if not results:
-                    jumia_url = f"https://www.jumia.mg/catalog/?q={query.replace(' ', '+')}"
-                    scraperapi_url_jumia = f"https://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={jumia_url}"
-                    response_jumia = requests.get(scraperapi_url_jumia, timeout=30, proxies={"http": None, "https": None})
-                    soup_jumia = BeautifulSoup(response_jumia.text, 'html.parser')
-                    products_jumia = soup_jumia.find_all('article', class_='prd')
-                    for product in products_jumia[:10]:
-                        title_tag = product.find('h3', class_='name')
-                        price_tag = product.find('div', class_='prc')
-                        if title_tag and price_tag:
-                            title = title_tag.text.strip()
-                            price = price_tag.text.strip()
-                            price_display = f"{price} Ar"
-                            save_price(cache_key, title, price_display, "ScraperAPI (Jumia)")
-                            results.append({'title': title, 'price': price_display, 'source': "ScraperAPI (Jumia)", 'affiliate_link': "#"})
-
-                updated_at = f"Aujourd'hui ({country})"
-
-            except Exception as e:
-                results = [{'title': f"Erreur: {str(e)[:80]}", 'price': 'Vérifie ta clé ScraperAPI', 'source': 'Info', 'affiliate_link': '#'}]
-                updated_at = "API indisponible"
-
+    results, updated_at = fetch_scout_results(query, country)
     return render_template('scout.html', query=query, results=results, country=country, updated_at=updated_at, year=datetime.datetime.now().year)
 
 @app.route('/guides')
@@ -483,10 +536,11 @@ def connexion():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
+        remember = request.form.get('remember') == 'on'
         user_data = get_user_by_email(email)
         if user_data and bcrypt.checkpw(password.encode('utf-8'), user_data['password'].encode('utf-8')):
             user = User(user_data['id'], user_data['email'])
-            login_user(user)
+            login_user(user, remember=remember)
             flash("Connecté !", "success")
             return redirect('/')
         else:

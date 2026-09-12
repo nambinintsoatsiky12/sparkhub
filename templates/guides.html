@@ -3,53 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guides API — SparkHub</title>
+    <title>Guides — SparkHub</title>
     <link rel="icon" href="{{ url_for('static', filename='images/logo.svg') }}" type="image/svg+xml">
-    <style>
-        body { font-family: 'Inter', sans-serif; background: #fafafa; margin: 0; padding: 0; }
-        .container { max-width: 1000px; margin: 40px auto; padding: 0 20px; }
-        .navbar { padding: 16px 30px; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0,0,0,0.04); display: flex; justify-content: space-between; align-items: center; }
-        .navbar img { height: 38px; }
-        .navbar a { color: #0f172a; text-decoration: none; font-weight: 600; }
-        .card { background: white; padding: 24px; border-radius: 20px; border: 1px solid #e5e7eb; margin-bottom: 20px; }
-        .card h2 { color: #0f172a; margin-top: 0; }
-        .card p { color: #475569; line-height: 1.6; }
-        .card .emoji { font-size: 2.4rem; }
-        footer { text-align: center; padding: 25px; background: #0f172a; color: #cbd5e1; margin-top: 40px; }
-        footer strong { color: #f97316; }
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
 </head>
 <body>
-    <nav class="navbar">
-        <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="SparkHub">
-        <a href="/">Accueil</a>
-    </nav>
-    <div class="container">
-        <h1>📚 Guides & Ressources</h1>
-        <p style="color: #6b7280;">Apprenez à utiliser les API, les tokens et à maîtriser le web.</p>
+    {% set active = 'guides' %}
+    {% include '_nav.html' %}
 
-        <div class="card">
-            <div class="emoji">🔑</div>
-            <h2>Comment obtenir une clé API</h2>
-            <p>Étape par étape pour récupérer vos clés Google, Metoda, ScraperAPI, etc. <br> <strong>📌 Astuce :</strong> Les clés API se trouvent toujours dans les paramètres du compte (Settings) ou dans la section "Developer".</p>
+    <main class="container">
+        <header class="page-head">
+            <span class="eyebrow">Ressources</span>
+            <h1>Guides &amp; ressources</h1>
+            <p>Apprenez à utiliser les API, les tokens et à maîtriser le web.</p>
+        </header>
+
+        <div class="grid mt-24">
+            <div class="card feature-card">
+                <span class="feature-icon"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="8.5" cy="15.5" r="4"/><path d="m11.5 12.5 8-8M16 6l2 2M18 4l2 2"/></svg></span></span>
+                <div>
+                    <h3>Obtenir une clé API</h3>
+                    <p>Étape par étape pour récupérer vos clés (ScraperAPI, etc.). Les clés se trouvent toujours dans les paramètres du compte, section « Developer ».</p>
+                    <p class="hint">Astuce : ne partagez jamais une clé publiquement.</p>
+                </div>
+            </div>
+
+            <div class="card feature-card">
+                <span class="feature-icon"><span class="ic"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg></span></span>
+                <div>
+                    <h3>Comprendre les tokens</h3>
+                    <p>Authentification JWT, OAuth2 et usage sécurisé. Un token est comme un mot de passe temporaire.</p>
+                    <p class="hint">Astuce : utilisez toujours une expiration courte.</p>
+                </div>
+            </div>
+
+            <div class="card feature-card">
+                <span class="feature-icon"><span class="ic"><svg viewBox="0 0 24 24"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg></span></span>
+                <div>
+                    <h3>Scraper sans se faire bloquer</h3>
+                    <p>Bonnes pratiques pour collecter des données proprement. Privilégiez les API officielles quand c'est possible.</p>
+                    <p class="hint">Astuce : le scraping est un dernier recours.</p>
+                </div>
+            </div>
         </div>
+    </main>
 
-        <div class="card">
-            <div class="emoji">🤖</div>
-            <h2>Comprendre les tokens</h2>
-            <p>Authentification JWT, OAuth2, et usage sécurisé. <br> <strong>📌 Astuce :</strong> Un token est comme un mot de passe temporaire. Ne le partagez jamais publiquement.</p>
+    <footer class="footer">
+        <div class="footer-inner">
+            <span>© {{ year }} SparkHub — Développé par <strong>Seïkī</strong></span>
+            <div class="footer-links">
+                <a href="/marketplace">Marketplace</a>
+                <a href="/paiements">Paiements</a>
+                <a href="/">Accueil</a>
+            </div>
         </div>
-
-        <div class="card">
-            <div class="emoji">📡</div>
-            <h2>Scraper sans se faire bloquer</h2>
-            <p>Bonnes pratiques pour collecter des données proprement. <br> <strong>📌 Astuce :</strong> Utilisez des APIs officielles quand c'est possible. Le scraping est un dernier recours.</p>
-        </div>
-
-        <a href="/" style="display:inline-block; margin-top: 20px; color: #f97316; text-decoration: none;">← Retour à l'accueil</a>
-    </div>
-    <footer>
-        <p>&copy; {{ year }} SparkHub — Développé par <strong>Seïkī</strong></p>
     </footer>
 </body>
 </html>
