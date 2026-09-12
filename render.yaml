@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: sparkhub
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: SPARKHUB_SECRET_KEY
+        generateValue: true
+      - key: SPARKHUB_WEBHOOK_TOKEN
+        generateValue: true
+      - key: SCRAPERAPI_KEY
+        sync: false
