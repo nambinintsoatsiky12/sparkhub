@@ -5,41 +5,52 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inscription — SparkHub</title>
     <link rel="icon" href="{{ url_for('static', filename='images/logo.svg') }}" type="image/svg+xml">
-    <style>
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family: 'Inter', sans-serif; background: #fafafa; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .container { background: white; padding: 40px; border-radius: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.06); max-width: 420px; width: 100%; }
-        .container h1 { font-size: 1.8rem; margin-bottom: 8px; }
-        .container p { color: #6b7280; margin-bottom: 24px; }
-        input { width: 100%; padding: 14px 16px; border: 1px solid #e5e7eb; border-radius: 12px; margin-bottom: 16px; font-size: 1rem; }
-        button { background: #f97316; color: white; border: none; padding: 14px; border-radius: 40px; font-weight: 700; width: 100%; cursor: pointer; font-size: 1rem; }
-        button:hover { background: #ea580c; }
-        .flash { padding: 12px; border-radius: 12px; margin-bottom: 16px; }
-        .flash.success { background: #d1fae5; color: #065f46; }
-        .flash.danger { background: #fee2e2; color: #991b1b; }
-        a { color: #f97316; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        @media (max-width: 480px) { .container { padding: 24px; } }
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
 </head>
 <body>
-    <div class="container">
-        <h1>📝 Inscription</h1>
-        <p>Créez un compte pour accéder à toutes les fonctionnalités.</p>
+    <div class="auth-wrap">
+        <div class="auth-card">
+            <div class="auth-brand">
+                <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="SparkHub">
+                <div>
+                    <h1>Créer un compte</h1>
+                    <p>Rejoignez SparkHub et accédez à toutes les fonctionnalités.</p>
+                </div>
+            </div>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% for category, message in messages %}
-                <div class="flash {{ category }}">{{ message }}</div>
-            {% endfor %}
-        {% endwith %}
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">
+                        <span class="ic">
+                            {% if category == 'success' %}<svg viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7"/></svg>
+                            {% else %}<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>{% endif %}
+                        </span>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endwith %}
 
-        <form method="POST">
-            <input type="email" name="email" placeholder="Email" required>
-            <input type="password" name="password" placeholder="Mot de passe" required>
-            <input type="password" name="confirm_password" placeholder="Confirmer le mot de passe" required>
-            <button type="submit">S'inscrire</button>
-        </form>
-        <p style="text-align:center; margin-top:16px;">Déjà un compte ? <a href="/connexion">Se connecter</a></p>
+            <form method="POST">
+                <div class="field">
+                    <label for="email">Adresse e-mail</label>
+                    <input class="input" id="email" type="email" name="email" placeholder="vous@exemple.com" required autofocus>
+                </div>
+                <div class="field">
+                    <label for="password">Mot de passe</label>
+                    <input class="input" id="password" type="password" name="password" placeholder="8 caractères minimum" required>
+                </div>
+                <div class="field">
+                    <label for="confirm_password">Confirmer le mot de passe</label>
+                    <input class="input" id="confirm_password" type="password" name="confirm_password" placeholder="Répétez le mot de passe" required>
+                </div>
+                <button class="btn btn-primary btn-block" type="submit">Créer mon compte</button>
+            </form>
+
+            <p class="auth-foot">Déjà un compte ? <a href="/connexion">Se connecter</a></p>
+        </div>
     </div>
 </body>
-  </html>
+</html>
